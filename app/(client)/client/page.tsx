@@ -1,0 +1,289 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Badge from '@/components/ui/Badge';
+import { useTranslation } from '@/i18n';
+import { formatDate, formatToday, getSubscriptionStatus } from '@/lib/dateUtils';
+import type { Subscription, DailyDelivery } from '@/types';
+
+export default function ClientHomePage() {
+  const { t } = useTranslation();
+  const [sub, setSub] = useState<(Subscription & { total_service_days?: number; remaining_service_days?: number }) | null>(null);
+  const [deliveries, setDeliveries] = useState<DailyDelivery[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [subRes, histRes] = await Promise.all([
+          fetch('/api/client/subscription'),
+          fetch(`/api/client/history?year=${new Date().getFullYear()}&month=${new Date().getMonth() + 1}`),
+        ]);
+        const subData = await subRes.json();
+        const histData = await histRes.json();
+
+        setSub(subData.data);
+
+        // Filter today's deliveries
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const todayDeliveries = (histData.data?.deliveries ?? []).filter(
+          (d: DailyDelivery) => d.date.slice(0, 10) === today
+        );
+        const todaySkips = (histData.data?.skips ?? []).filter(
+          (s: any) => s.date.slice(0, 10) === today
+        );
+
+        // Construct lunch and dinner statuses checking skips
+        const mergedDeliveries: DailyDelivery[] = [];
+        const mealTypes = ['Lunch', 'Dinner'];
+        for (const mealType of mealTypes) {
+          const del = todayDeliveries.find((d: DailyDelivery) => d.meal_type === mealType);
+          const skip = todaySkips.find((s: any) => s.meal_type === mealType);
+          if (del) {
+            if (del.status === 'pending' && skip && skip.status === 'pending') {
+              mergedDeliveries.push({ ...del, status: 'pending_skip' as any });
+            } else {
+              mergedDeliveries.push(del);
+            }
+          } else if (skip) {
+            mergedDeliveries.push({
+              id: `temp_${mealType}`,
+              client_id: subData.data?.client_id ?? '',
+              date: today,
+              meal_type: mealType,
+              status: (skip.status === 'approved' ? 'skipped' : 'pending_skip') as any,
+              skip_request_id: skip.id,
+            } as any);
+          }
+        }
+        setDeliveries(mergedDeliveries);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  if (loading) return <LoadingSkeleton />;
+
+  const status = sub ? getSubscriptionStatus(sub) : 'expired';
+  const isExpired = !sub || status === 'expired';
+
+  const lunch  = deliveries.find((d) => d.meal_type === 'Lunch');
+  const dinner = deliveries.find((d) => d.meal_type === 'Dinner');
+
+  const progress = sub && sub.total_service_days
+    ? Math.round(((sub.total_service_days - (sub.remaining_service_days ?? 0)) / sub.total_service_days) * 100)
+    : 0;
+
+  return (
+    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+      {/* Subscription card */}
+      {isExpired ? (
+        <div style={{
+          background: '#FEF2F2', border: '1.5px solid #FECACA',
+          borderRadius: 20, padding: 20, marginBottom: 16, textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: '#DC2626', marginBottom: 6 }}>
+            {t('sub.expired')}
+          </div>
+          <div style={{ fontSize: 13, color: '#7F1D1D', lineHeight: 1.5 }}>
+            {sub
+              ? `${t('sub.expiredMsg')} (${t('common.end')}: ${formatDate(sub.end_date)})`
+              : t('sub.expiredMsg')
+            }
+          </div>
+        </div>
+      ) : sub ? (
+        <div style={{
+          background: 'white', border: '1.5px solid var(--color-border)',
+          borderRadius: 20, padding: 20, marginBottom: 16,
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 2px 12px rgba(44,94,46,0.08)',
+        }}>
+          {/* Left accent stripe */}
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0,
+            width: 4, background: 'var(--color-primary)', borderRadius: '2px 0 0 2px',
+          }} />
+          <div style={{ paddingLeft: 12 }}>
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                {sub.type === 'Monthly' ? t('sub.monthly') : sub.type}
+              </span>
+              <Badge variant="active" dot>{t('sub.active')}</Badge>
+            </div>
+
+            {/* Amount */}
+            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 30, fontWeight: 900, color: 'var(--color-text)' }}>
+              ₹{Number(sub.amount).toLocaleString('en-IN')}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--color-text-light)', marginTop: 2 }}>
+              {t('sub.monthly')} — {t('meal.lunch')} + {t('meal.dinner')}
+            </div>
+
+            {/* Date row */}
+            <div style={{ display: 'flex', gap: 20, marginTop: 16 }}>
+              {[
+                { label: t('common.start'),        value: formatDate(sub.start_date) },
+                { label: t('common.end'),          value: formatDate(sub.end_date) },
+                { label: t('common.serviceDays'), value: t('sub.serviceDays', { count: sub.total_service_days ?? 0 }) },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-light)', textTransform: 'uppercase' }}>{label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('sub.daysLeft', { count: sub.remaining_service_days ?? 0 })}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--color-primary)' }}>
+                  {t('sub.daysLeft', { count: sub.remaining_service_days ?? 0 })}
+                </span>
+              </div>
+              <div style={{ background: 'var(--color-primary-light)', borderRadius: 4, height: 6 }}>
+                <div style={{
+                  background: 'var(--color-primary)',
+                  height: 6, borderRadius: 4,
+                  width: `${progress}%`,
+                  transition: 'width 0.6s ease',
+                }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Today's meals */}
+      {!isExpired && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-text)', fontFamily: "'Playfair Display', Georgia, serif" }}>
+              {t('meal.todaysMeals')}
+            </h2>
+            <span style={{ fontSize: 11, color: 'var(--color-text-light)', fontWeight: 600 }}>
+              {formatToday()}
+            </span>
+          </div>
+
+          {[
+            { delivery: lunch,  label: 'Lunch',  icon: '🍱', time: t('client.lunchTime'), active: sub?.subscribe_lunch !== false },
+            { delivery: dinner, label: 'Dinner', icon: '🌙', time: t('client.dinnerTime'), active: sub?.subscribe_dinner !== false },
+          ].filter(item => item.active).map(({ delivery, label, icon, time }) => (
+            <MealCard
+              key={label}
+              label={label}
+              icon={icon}
+              time={time}
+              delivery={delivery}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MealCard({
+  label, icon, time, delivery,
+}: {
+  label: string;
+  icon: string;
+  time: string;
+  delivery?: DailyDelivery;
+}) {
+  const { t } = useTranslation();
+  const status = delivery?.status ?? 'pending';
+  const skipped = status === 'skipped';
+  const delivered = status === 'delivered';
+  const notAvailable = status === 'not_available';
+  const pendingSkip = status === 'pending_skip';
+
+  const labelText = label === 'Lunch' ? t('meal.lunch') : t('meal.dinner');
+
+  const statusLabel =
+    delivered     ? t('meal.delivered')
+    : skipped     ? t('meal.skipped')
+    : notAvailable? t('meal.notAvailable')
+    : pendingSkip ? t('skip.pending')
+    : t('meal.scheduled');
+
+  const badgeVariant =
+    delivered     ? 'delivered'
+    : skipped     ? 'skipped'
+    : notAvailable? 'not_available'
+    : pendingSkip ? 'pending'
+    : 'active';
+
+  return (
+    <div style={{
+      background: skipped ? '#F9FAFB' : pendingSkip ? '#FFFDF5' : 'white',
+      border: `1.5px solid ${skipped ? '#E5E7EB' : pendingSkip ? '#F5A623' : 'var(--color-border)'}`,
+      borderRadius: 16,
+      padding: '15px 16px',
+      marginBottom: 10,
+      opacity: skipped ? 0.8 : 1,
+      transition: 'all 0.2s ease',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 42, height: 42,
+            background: skipped ? '#F3F4F6' : pendingSkip ? '#FEF3DC' : 'var(--color-primary-light)',
+            borderRadius: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 20,
+          }}>
+            {icon}
+          </div>
+          <div>
+            <div style={{
+              fontSize: 15, fontWeight: 800,
+              color: skipped ? '#6B7280' : 'var(--color-text)',
+              textDecoration: skipped ? 'line-through' : 'none',
+            }}>
+              {labelText}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--color-text-light)', marginTop: 2 }}>
+              {skipped
+                ? delivery?.delivery_note || t('meal.skipped')
+                : pendingSkip
+                ? t('skip.pending')
+                : delivered
+                ? t('client.deliveredAt', { time: delivery?.delivered_at ? new Date(delivery.delivered_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '' })
+                : t('client.expected', { time })
+              }
+            </div>
+          </div>
+        </div>
+        <Badge variant={badgeVariant}>{statusLabel}</Badge>
+      </div>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div>
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          style={{
+            borderRadius: 20,
+            height: i === 1 ? 180 : 72,
+            marginBottom: 12,
+            background: 'linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.4s infinite',
+          } as React.CSSProperties}
+        />
+      ))}
+      <style>{`@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }`}</style>
+    </div>
+  );
+}

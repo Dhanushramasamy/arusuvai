@@ -1,26 +1,194 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ================================================================
+   ARUSUVAI — Design Tokens
+   ================================================================ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand colors */
+  --color-primary:        #2C5E2E;
+  --color-primary-dark:   #1E4020;
+  --color-primary-light:  #EBF5EB;
+
+  --color-accent:         #F5A623;
+  --color-accent-dark:    #D4891A;
+  --color-accent-light:   #FEF3DC;
+
+  /* Surfaces */
+  --color-surface:        #FFFFFF;
+  --color-bg:             #F7F8F5;
+  --color-border:         #E2E8E2;
+
+  /* Text */
+  --color-text:           #1A2E1A;
+  --color-text-muted:     #5C6E5C;
+  --color-text-light:     #8FA48F;
+
+  /* Status */
+  --color-success:        #22C55E;
+  --color-warning:        #F59E0B;
+  --color-error:          #EF4444;
+  --color-info:           #3B82F6;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ================================================================
+   Base Reset
+   ================================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body, button, input, select, textarea {
+  font-family: 'Playfair Display', Georgia, serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ================================================================
+   Tailwind CSS v4 theme inline config
+   ================================================================ */
+@theme {
+  --color-brand:       #2C5E2E;
+  --color-brand-dark:  #1E4020;
+  --color-brand-light: #EBF5EB;
+  --color-accent:      #F5A623;
+  --color-accent-dark: #D4891A;
+  --color-accent-light:#FEF3DC;
+
+  --font-family-display: 'Playfair Display', Georgia, Cambria, "Times New Roman", serif;
+  --font-family-body:    'Playfair Display', Georgia, sans-serif;
+}
+
+/* ================================================================
+   Scrollbar styling
+   ================================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+/* ================================================================
+   Focus styles
+   ================================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ================================================================
+   Utility animations
+   ================================================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease forwards;
+}
+
+/* ================================================================
+   Shared UI helpers (non-Tailwind, used in component CSS)
+   ================================================================ */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.btn-primary:hover  { background: var(--color-primary-dark); }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-accent {
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.btn-accent:hover  { background: var(--color-accent-dark); }
+.btn-accent:active { transform: scale(0.98); }
+
+.btn-ghost {
+  background: white;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-ghost:hover { background: var(--color-bg); }
+
+/* Input base */
+.input-base {
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-base:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(44,94,46,0.12);
+  background: white;
+}
+.input-base::placeholder {
+  color: var(--color-text-light);
+  font-weight: 400;
 }

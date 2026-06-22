@@ -1,0 +1,105 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
+import bcrypt from 'bcryptjs';
+import pool from '@/lib/db';
+import { getSession } from '@/lib/session';
+import type { ApiResponse } from '@/types';
+
+export async function GET() {
+  try {
+    const result = await pool.query(
+      `SELECT
+         u.*,
+         s.id as sub_id,
+         s.amount as sub_amount,
+         s.start_date,
+         s.end_date,
+         s.status as sub_status,
+         s.type as sub_type,
+         s.subscribe_lunch,
+         s.subscribe_dinner,
+         p.status as payment_status
+       FROM users u
+       LEFT JOIN LATERAL (
+         SELECT * FROM subscriptions
+         WHERE client_id = u.id
+         ORDER BY created_at DESC LIMIT 1
+       ) s ON true
+       LEFT JOIN LATERAL (
+         SELECT status FROM payments
+         WHERE client_id = u.id
+           AND year = EXTRACT(YEAR FROM NOW())
+           AND month = EXTRACT(MONTH FROM NOW())
+         LIMIT 1
+       ) p ON true
+       WHERE u.role = 'client'
+       ORDER BY u.name`
+    );
+
+    return NextResponse.json<ApiResponse>({ success: true, data: result.rows });
+  } catch (err) {
+    console.error('[admin/clients GET]', err);
+    return NextResponse.json<ApiResponse>({ success: false, error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json<ApiResponse>({ success: false, error: 'Unauthorized' }, { status: 401 });
+
+    const { name, phone_number, location, username, password, delivery_note, subscription } = await req.json();
+
+    if (!name || !username || !password) {
+      return NextResponse.json<ApiResponse>({ success: false, error: 'name, username, and password are required' }, { status: 400 });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const userId = `client_${randomUUID().replace(/-/g, '').slice(0, 10)}`;
+
+    const db = await pool.connect();
+    try {
+      await db.query('BEGIN');
+
+      await db.query(
+        `INSERT INTO users (id, name, phone_number, role, location, username, password_hash, delivery_note, created_by)
+         VALUES ($1, $2, $3, 'client', $4, $5, $6, $7, $8)`,
+        [userId, name, phone_number ?? '', location ?? '', username, passwordHash, delivery_note ?? '', session.id]
+      );
+
+      if (subscription) {
+        const subId = `sub_${randomUUID().replace(/-/g, '').slice(0, 10)}`;
+        await db.query(
+          `INSERT INTO subscriptions (id, client_id, type, amount, start_date, end_date, status, subscribe_lunch, subscribe_dinner, created_by)
+           VALUES ($1, $2, 'Monthly', $3, $4, $5, 'active', $6, $7, $8)`,
+          [subId, userId, subscription.amount, subscription.start_date, subscription.end_date, subscription.subscribe_lunch !== false, subscription.subscribe_dinner !== false, session.id]
+        );
+
+        // Create payment record for this month
+        const now = new Date();
+        const payId = `${userId}-${now.getFullYear()}-${now.getMonth() + 1}`;
+        await db.query(
+          `INSERT INTO payments (id, client_id, subscription_id, month, year, amount, status)
+           VALUES ($1, $2, $3, $4, $5, $6, 'unpaid')
+           ON CONFLICT DO NOTHING`,
+          [payId, userId, subId, now.getMonth() + 1, now.getFullYear(), subscription.amount]
+        );
+      }
+
+      await db.query('COMMIT');
+    } catch (e) {
+      await db.query('ROLLBACK');
+      throw e;
+    } finally {
+      db.release();
+    }
+
+    return NextResponse.json<ApiResponse>({ success: true, data: { id: userId } }, { status: 201 });
+  } catch (err: unknown) {
+    console.error('[admin/clients POST]', err);
+    if ((err as { code?: string }).code === '23505') {
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Username already exists' }, { status: 409 });
+    }
+    return NextResponse.json<ApiResponse>({ success: false, error: 'Server error' }, { status: 500 });
+  }
+}
