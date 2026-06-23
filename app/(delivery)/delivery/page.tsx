@@ -3,8 +3,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
-import DatePickerModal from '@/components/ui/DatePickerModal';
-import { useTranslation } from '@/i18n';
 import type { DailyDelivery } from '@/types';
 
 type MealTab = 'Lunch' | 'Dinner';
@@ -21,7 +19,6 @@ function formatDateDisplay(iso: string) {
 }
 
 export default function DeliveryTodayPage() {
-  const { t } = useTranslation();
   const router = useRouter();
   const [date, setDate] = useState(dateStr(new Date()));
   const [deliveries, setDeliveries] = useState<(DailyDelivery & { delivery_note_client?: string; skip_status?: string; skip_req_id?: string })[]>([]);
@@ -30,7 +27,6 @@ export default function DeliveryTodayPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [personName, setPersonName] = useState('');
   const [signingOut, setSigningOut] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,7 +45,7 @@ export default function DeliveryTodayPage() {
     setDate(dateStr(d));
   }
 
-  // Get name from me API
+  // Get name from cookie
   useEffect(() => {
     fetch('/api/auth/me').then((r) => {
       if (r.ok) r.json().then((d) => setPersonName(d.data?.name ?? ''));
@@ -91,30 +87,15 @@ export default function DeliveryTodayPage() {
         padding: '16px 20px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(255, 255, 255, 0.15)',
-            flexShrink: 0,
-          }}>
-            <img src="/logo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: '#A8D4A8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('nav.delivery')}</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: 'white', fontFamily: "'Playfair Display', Georgia, serif" }}>
-              {personName || 'Delivery Person'}
-            </div>
+        <div>
+          <div style={{ fontSize: 11, color: '#A8D4A8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Delivery</div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: 'white', fontFamily: 'Georgia, serif' }}>
+            {personName || 'Delivery Person'}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-accent)' }}>
-            {deliveries.length} {t('meal.assigned').toLowerCase()}
+            {deliveries.length} assigned
           </div>
           <button
             onClick={signOut}
@@ -126,7 +107,7 @@ export default function DeliveryTodayPage() {
               cursor: 'pointer',
             }}
           >
-            {t('auth.signOut')}
+            Sign Out
           </button>
         </div>
       </header>
@@ -136,7 +117,6 @@ export default function DeliveryTodayPage() {
         {(['Lunch', 'Dinner'] as MealTab[]).map((tab) => {
           const count = tab === 'Lunch' ? lunchCount : dinnerCount;
           const active = mealTab === tab;
-          const labelText = tab === 'Lunch' ? t('meal.lunch') : t('meal.dinner');
           return (
             <button key={tab} onClick={() => setMealTab(tab)}
               style={{
@@ -147,7 +127,7 @@ export default function DeliveryTodayPage() {
                 fontSize: 13, fontWeight: active ? 700 : 600, cursor: 'pointer',
               }}
             >
-              {tab === 'Lunch' ? '🍱' : '🌙'} {labelText} ({count})
+              {tab === 'Lunch' ? '🍱' : '🌙'} {tab} ({count})
             </button>
           );
         })}
@@ -157,10 +137,10 @@ export default function DeliveryTodayPage() {
       <div style={{ background: 'white', padding: '10px 16px', borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
           <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            {mealTab === 'Lunch' ? t('meal.lunch') : t('meal.dinner')} {t('delivery.done').toLowerCase()}
+            {mealTab} progress
           </span>
           <span style={{ color: 'var(--color-primary)', fontWeight: 800 }}>
-            {t('delivery.progress', { done: doneCount, total: totalCount })}
+            {doneCount} of {totalCount} delivered
           </span>
         </div>
         <div style={{ background: 'var(--color-primary-light)', borderRadius: 4, height: 8 }}>
@@ -181,19 +161,17 @@ export default function DeliveryTodayPage() {
           marginBottom: 16,
         }}>
           <button onClick={() => navDate(-1)} style={navBtnStyle}>‹</button>
-          <div onClick={() => setShowDatePicker(true)} style={{ textAlign: 'center', cursor: 'pointer' }}>
-            <div style={{ fontSize: 10, color: 'var(--color-text-light)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              {t('delivery.deliveryDate')}
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-primary)', fontFamily: "'Playfair Display', Georgia, serif" }}>
-              {formatDateDisplay(date)} 📅
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: 'var(--color-text-light)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Delivery Date</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-primary)', fontFamily: 'Georgia, serif' }}>
+              {formatDateDisplay(date)}
             </div>
           </div>
           <button onClick={() => navDate(1)} style={navBtnStyle}>›</button>
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-light)' }}>{t('common.loading')}</div>
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-light)' }}>Loading your list…</div>
         ) : (
           <>
             {toDeliver.length > 0 && (
@@ -202,7 +180,7 @@ export default function DeliveryTodayPage() {
                   fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)',
                   textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10,
                 }}>
-                  {t('delivery.toDeliver')} — {t('delivery.remaining', { count: toDeliver.length })}
+                  To Deliver — {toDeliver.length} remaining
                 </div>
                 {toDeliver.map((d, idx) => (
                   <div key={d.id} style={{
@@ -214,7 +192,7 @@ export default function DeliveryTodayPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-text)' }}>{d.client_name}</span>
                           {d.skip_status === 'pending' && (
-                            <Badge variant="pending">{t('admin.skipPending')}</Badge>
+                            <Badge variant="pending">Skip Pending</Badge>
                           )}
                         </div>
                         <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>📞 {d.phone_number}</div>
@@ -250,7 +228,7 @@ export default function DeliveryTodayPage() {
                           fontWeight: 700, fontSize: 13, cursor: 'pointer',
                         }}
                       >
-                        {updating === d.id ? '…' : `✓ ${t('delivery.markDelivered')}`}
+                        {updating === d.id ? '…' : '✓ Delivered'}
                       </button>
                       <button
                         onClick={() => markStatus(d.id, 'not_available')}
@@ -262,7 +240,7 @@ export default function DeliveryTodayPage() {
                           fontWeight: 700, fontSize: 12, cursor: 'pointer',
                         }}
                       >
-                        {t('delivery.notAvailable')}
+                        Not Available
                       </button>
                     </div>
                   </div>
@@ -277,7 +255,7 @@ export default function DeliveryTodayPage() {
                   textTransform: 'uppercase', letterSpacing: '0.08em',
                   marginTop: 20, marginBottom: 10,
                 }}>
-                  {t('delivery.completed', { count: done.length })}
+                  Completed — {done.length}
                 </div>
                 {done.map((d) => (
                   <div key={d.id} style={{
@@ -297,7 +275,7 @@ export default function DeliveryTodayPage() {
                         borderRadius: 20, padding: '3px 10px',
                         fontSize: 11, fontWeight: 700,
                       }}>
-                        {d.status === 'delivered' ? `✓ ${t('delivery.done')}` : t('delivery.notAvailable')}
+                        {d.status === 'delivered' ? '✓ Done' : 'Not at Site'}
                       </span>
                       {d.delivered_at && (
                         <div style={{ fontSize: 10, color: 'var(--color-text-light)', marginTop: 2 }}>
@@ -313,20 +291,12 @@ export default function DeliveryTodayPage() {
             {filtered.length === 0 && (
               <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--color-text-light)' }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{t('delivery.noDeliveries', { meal: mealTab === 'Lunch' ? t('meal.lunch') : t('meal.dinner') })}</div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>No deliveries assigned for {mealTab}.</div>
               </div>
             )}
           </>
         )}
       </main>
-
-      {/* Date Picker Modal */}
-      <DatePickerModal
-        open={showDatePicker}
-        onClose={() => setShowDatePicker(false)}
-        selectedDate={date}
-        onSelect={setDate}
-      />
     </div>
   );
 }

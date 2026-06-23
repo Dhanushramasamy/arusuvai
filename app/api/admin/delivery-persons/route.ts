@@ -32,10 +32,10 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     if (!session) return NextResponse.json<ApiResponse>({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-    const { name, phone_number, username, password } = await req.json();
+    const { name, phone_number, password } = await req.json();
 
-    if (!name || !username || !password) {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'name, username, and password are required' }, { status: 400 });
+    if (!name || !phone_number || !password) {
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Name, phone number, and password are required' }, { status: 400 });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -44,14 +44,14 @@ export async function POST(req: NextRequest) {
     await pool.query(
       `INSERT INTO users (id, name, phone_number, role, username, password_hash, created_by)
        VALUES ($1, $2, $3, 'delivery_person', $4, $5, $6)`,
-      [userId, name, phone_number ?? '', username, passwordHash, session.id]
+      [userId, name, phone_number, phone_number, passwordHash, session.id]
     );
 
     return NextResponse.json<ApiResponse>({ success: true, data: { id: userId } }, { status: 201 });
   } catch (err: unknown) {
     console.error('[admin/delivery-persons POST]', err);
     if ((err as { code?: string }).code === '23505') {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'Username already exists' }, { status: 409 });
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Phone number already registered' }, { status: 409 });
     }
     return NextResponse.json<ApiResponse>({ success: false, error: 'Server error' }, { status: 500 });
   }

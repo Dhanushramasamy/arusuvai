@@ -19,29 +19,21 @@ export default function Logo({ size = 'md', variant = 'default' }: LogoProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-      <div
+      <img
+        src="/logo.jpg"
+        alt="Arusuvai Logo"
         style={{
           width: s.icon,
           height: s.icon,
-          background: iconBg,
           borderRadius: s.icon * 0.25,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          objectFit: 'cover',
           boxShadow: '0 4px 12px rgba(44,94,46,0.25)',
-          overflow: 'hidden',
         }}
-      >
-        <img
-          src="/logo.jpg"
-          alt="Arusuvai Logo"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-      </div>
+      />
       <div style={{ textAlign: 'center' }}>
         <div
           style={{
-            fontFamily: "'Playfair Display', Georgia, Cambria, serif",
+            fontFamily: 'Georgia, Cambria, serif',
             fontSize: s.titleFont,
             fontWeight: 900,
             color: titleColor,
@@ -74,29 +66,21 @@ export function LogoInline({ variant = 'default' }: { variant?: 'default' | 'whi
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div
+      <img
+        src="/logo.jpg"
+        alt="Arusuvai Logo"
         style={{
           width: 40,
           height: 40,
-          background: iconBg,
           borderRadius: 12,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          objectFit: 'cover',
           flexShrink: 0,
-          overflow: 'hidden',
         }}
-      >
-        <img
-          src="/logo.jpg"
-          alt="Arusuvai Logo"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-      </div>
+      />
       <div>
         <div
           style={{
-            fontFamily: "'Playfair Display', Georgia, Cambria, serif",
+            fontFamily: 'Georgia, Cambria, serif',
             fontSize: 18,
             fontWeight: 900,
             color: titleColor,

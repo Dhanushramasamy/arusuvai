@@ -12,7 +12,6 @@ interface ClientLayoutInnerProps {
 const tabs = [
   { href: '/client',         label: 'nav.home',    icon: '🏠' },
   { href: '/client/skip',    label: 'nav.skip',    icon: '⏭' },
-  { href: '/client/history', label: 'nav.history', icon: '📋' },
 ];
 
 export default function ClientLayoutInner({ name, children }: ClientLayoutInnerProps) {
@@ -47,20 +46,21 @@ export default function ClientLayoutInner({ name, children }: ClientLayoutInnerP
         boxShadow: '0 1px 8px rgba(0,0,0,0.06)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 40, height: 40,
-            background: 'var(--color-primary)',
-            borderRadius: 12,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden',
-          }}>
-            <img src="/logo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="Arusuvai Logo"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              objectFit: 'cover',
+            }}
+          />
           <div>
             <div style={{ fontSize: 11, color: 'var(--color-text-light)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               {greeting}
             </div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', fontFamily: "'Playfair Display', Georgia, serif" }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', fontFamily: 'Georgia, serif' }}>
               {name}
             </div>
           </div>

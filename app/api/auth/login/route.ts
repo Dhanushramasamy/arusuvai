@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const result = await pool.query(
       `SELECT id, name, role, location, password_hash
        FROM users
-       WHERE LOWER(username) = LOWER($1)
+       WHERE (LOWER(username) = LOWER($1) OR phone_number = $1)
          AND is_active = true
        LIMIT 1`,
       [username.trim()]

@@ -10,7 +10,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { name, phone_number, username, password } = body;
+    const { name, phone_number, password } = body;
 
     const updates: string[] = [];
     const values: any[] = [id];
@@ -23,10 +23,8 @@ export async function PATCH(
     if (phone_number !== undefined) {
       updates.push(`phone_number = $${placeholderIdx++}`);
       values.push(phone_number);
-    }
-    if (username !== undefined) {
       updates.push(`username = $${placeholderIdx++}`);
-      values.push(username);
+      values.push(phone_number);
     }
     if (password) {
       const passwordHash = await bcrypt.hash(password, 10);
@@ -49,7 +47,7 @@ export async function PATCH(
   } catch (err: unknown) {
     console.error('[admin/delivery-persons/[id] PATCH]', err);
     if ((err as { code?: string }).code === '23505') {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'Username already exists' }, { status: 409 });
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Phone number already registered' }, { status: 409 });
     }
     return NextResponse.json<ApiResponse>({ success: false, error: 'Server error' }, { status: 500 });
   }

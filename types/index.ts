@@ -3,7 +3,7 @@
 // ================================================================
 
 export type Role = 'client' | 'admin' | 'delivery_person';
-export type MealType = 'Lunch' | 'Dinner';
+export type MealType = 'Breakfast' | 'Lunch' | 'Dinner';
 export type SkipStatus = 'pending' | 'approved' | 'rejected';
 export type DeliveryStatus = 'pending' | 'assigned' | 'delivered' | 'not_available' | 'skipped' | 'pending_skip';
 export type SubscriptionStatus = 'active' | 'expired' | 'cancelled' | 'not_started';
@@ -32,6 +32,7 @@ export interface Subscription {
   notes: string;
   subscribe_lunch?: boolean;
   subscribe_dinner?: boolean;
+  subscribe_breakfast?: boolean;
   // computed on client:
   total_service_days?: number;
   remaining_service_days?: number;

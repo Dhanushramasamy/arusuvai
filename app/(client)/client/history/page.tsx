@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Badge from '@/components/ui/Badge';
-import { useTranslation } from '@/i18n';
 import type { DailyDelivery, Payment } from '@/types';
+import { useTranslation } from '@/i18n';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -36,12 +36,18 @@ export default function ClientHistoryPage() {
     monthOptions.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
   }
 
-  // Merge deliveries and skips for display
-  const mergedList: DailyDelivery[] = [...deliveries];
+  // Get local today string in YYYY-MM-DD
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+  // Merge deliveries and skips for display, filtering only completed/past dates
+  const mergedList: DailyDelivery[] = [...deliveries].filter(
+    (d) => d.date.slice(0, 10) <= todayStr
+  );
 
   // For any skip request that does not have a corresponding daily delivery row, add it as a placeholder
   for (const s of skips) {
     const skipDateStr = s.date.slice(0, 10);
+    if (skipDateStr > todayStr) continue; // Exclude future skip requests from history
     const hasDelivery = deliveries.some(
       (d) => d.date.slice(0, 10) === skipDateStr && d.meal_type === s.meal_type
     );
@@ -75,26 +81,21 @@ export default function ClientHistoryPage() {
     return a.meal_type.localeCompare(b.meal_type);
   });
 
-  // Filter for completed/past deliveries only, excluding upcoming days and today's pending meals
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  const completedList = finalMergedList.filter((d) => {
-    const datePart = d.date.slice(0, 10);
-    if (datePart > todayStr) return false;
-    if (datePart === todayStr) {
-      return ['delivered', 'not_available', 'skipped'].includes(d.status);
-    }
-    return true;
-  });
+  const delivered     = finalMergedList.filter((d) => d.status === 'delivered').length;
+  const skipped       = finalMergedList.filter((d) => d.status === 'skipped').length;
+  const notAvailable  = finalMergedList.filter((d) => d.status === 'not_available').length;
 
-  const delivered     = completedList.filter((d) => d.status === 'delivered').length;
-  const skipped       = completedList.filter((d) => d.status === 'skipped').length;
-  const notAvailable  = completedList.filter((d) => d.status === 'not_available').length;
+  const getLocalizedMealName = (m: string) => {
+    if (m === 'Breakfast') return t('meal.breakfast');
+    if (m === 'Lunch') return t('meal.lunch');
+    return t('meal.dinner');
+  };
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
       <h1 style={{
         fontSize: 22, fontWeight: 900, color: 'var(--color-text)',
-        fontFamily: "'Playfair Display', Georgia, serif", marginBottom: 18,
+        fontFamily: 'Georgia, serif', marginBottom: 18,
       }}>
         {t('history.title')}
       </h1>
@@ -118,7 +119,7 @@ export default function ClientHistoryPage() {
                 transition: 'all 0.15s ease',
               }}
             >
-              {t('month.' + MONTHS[m - 1].toLowerCase())} {y}
+              {t(`MONTH_${m}` as any) !== `MONTH_${m}` ? t(`MONTH_${m}` as any) : MONTHS[m - 1]} {y}
             </button>
           );
         })}
@@ -137,9 +138,9 @@ export default function ClientHistoryPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 11, color: 'var(--color-text-light)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
-                  {t('history.summary', { month: t('month.' + MONTHS[month - 1].toLowerCase()) })}
+                  {t('history.summary', { month: `${MONTHS[month - 1]} ${year}` })}
                 </div>
-                <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 28, fontWeight: 900, color: 'var(--color-primary)' }}>
+                <div style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 900, color: 'var(--color-primary)' }}>
                   {payment?.amount ? `₹${Number(payment.amount).toLocaleString('en-IN')}` : '—'}
                 </div>
               </div>
@@ -151,7 +152,7 @@ export default function ClientHistoryPage() {
             </div>
             {payment?.settled_at && (
               <div style={{ fontSize: 11, color: 'var(--color-text-light)', marginBottom: 10 }}>
-                {t('payment.paid')} on {new Date(payment.settled_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                {t('payment.settledOn', { date: new Date(payment.settled_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) })}
               </div>
             )}
             <div style={{
@@ -172,7 +173,7 @@ export default function ClientHistoryPage() {
           </div>
 
           {/* Delivery log */}
-          {completedList.length > 0 ? (
+          {finalMergedList.length > 0 ? (
             <>
               <h3 style={{
                 fontSize: 12, fontWeight: 700, color: 'var(--color-text-light)',
@@ -180,12 +181,13 @@ export default function ClientHistoryPage() {
               }}>
                 {t('history.deliveryLog')}
               </h3>
-              {completedList.map((d) => {
+              {finalMergedList.map((d) => {
                 const date = new Date(d.date);
                 const dow = date.toLocaleDateString('en-IN', { weekday: 'short', timeZone: 'UTC' }).toUpperCase();
                 const day = date.getUTCDate();
                 const skipped = d.status === 'skipped';
                 const pendingSkip = d.status === 'pending_skip';
+                const isNA = d.status === 'not_available';
 
                 return (
                   <div
@@ -215,14 +217,14 @@ export default function ClientHistoryPage() {
                           color: skipped ? '#6B7280' : 'var(--color-text)',
                           textDecoration: skipped ? 'line-through' : 'none',
                         }}>
-                          {d.meal_type === 'Lunch' ? t('meal.lunch') : t('meal.dinner')}
+                          {getLocalizedMealName(d.meal_type)}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--color-text-light)' }}>
                           {d.status === 'delivered' && d.delivered_at
-                            ? `${t('meal.delivered')} ${new Date(d.delivered_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}`
-                            : d.status === 'skipped' ? t('meal.skipped')
-                            : pendingSkip ? t('skip.pending')
-                            : d.status === 'not_available' ? t('meal.notAvailable')
+                            ? t('meal.desc.delivered', { time: new Date(d.delivered_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) })
+                            : d.status === 'skipped' ? t('meal.desc.skipped')
+                            : pendingSkip ? t('meal.desc.pendingSkip')
+                            : d.status === 'not_available' ? t('meal.status.notAvailable')
                             : t('meal.pending')
                           }
                         </div>
@@ -230,9 +232,9 @@ export default function ClientHistoryPage() {
                     </div>
                     <Badge variant={d.status === 'delivered' ? 'delivered' : d.status === 'skipped' ? 'skipped' : d.status === 'not_available' ? 'not_available' : pendingSkip ? 'pending' : 'pending'}>
                       {d.status === 'delivered' ? `✓ ${t('meal.delivered')}`
-                        : d.status === 'skipped' ? t('meal.skipped')
+                        : d.status === 'skipped' ? t('meal.status.skipped')
                         : d.status === 'not_available' ? t('meal.notAvailable')
-                        : pendingSkip ? t('skip.pending')
+                        : pendingSkip ? t('meal.status.pendingSkip')
                         : t('meal.pending')}
                     </Badge>
                   </div>

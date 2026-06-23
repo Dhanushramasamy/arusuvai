@@ -18,6 +18,7 @@ export async function GET() {
          s.type as sub_type,
          s.subscribe_lunch,
          s.subscribe_dinner,
+         s.subscribe_breakfast,
          p.status as payment_status
        FROM users u
        LEFT JOIN LATERAL (
@@ -48,10 +49,10 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     if (!session) return NextResponse.json<ApiResponse>({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-    const { name, phone_number, location, username, password, delivery_note, subscription } = await req.json();
+    const { name, phone_number, location, password, delivery_note, subscription } = await req.json();
 
-    if (!name || !username || !password) {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'name, username, and password are required' }, { status: 400 });
+    if (!name || !phone_number || !password) {
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Name, phone number, and password are required' }, { status: 400 });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -64,15 +65,15 @@ export async function POST(req: NextRequest) {
       await db.query(
         `INSERT INTO users (id, name, phone_number, role, location, username, password_hash, delivery_note, created_by)
          VALUES ($1, $2, $3, 'client', $4, $5, $6, $7, $8)`,
-        [userId, name, phone_number ?? '', location ?? '', username, passwordHash, delivery_note ?? '', session.id]
+        [userId, name, phone_number, location ?? '', phone_number, passwordHash, delivery_note ?? '', session.id]
       );
 
       if (subscription) {
         const subId = `sub_${randomUUID().replace(/-/g, '').slice(0, 10)}`;
         await db.query(
-          `INSERT INTO subscriptions (id, client_id, type, amount, start_date, end_date, status, subscribe_lunch, subscribe_dinner, created_by)
-           VALUES ($1, $2, 'Monthly', $3, $4, $5, 'active', $6, $7, $8)`,
-          [subId, userId, subscription.amount, subscription.start_date, subscription.end_date, subscription.subscribe_lunch !== false, subscription.subscribe_dinner !== false, session.id]
+          `INSERT INTO subscriptions (id, client_id, type, amount, start_date, end_date, status, subscribe_lunch, subscribe_dinner, subscribe_breakfast, created_by)
+           VALUES ($1, $2, 'Monthly', $3, $4, $5, 'active', $6, $7, $8, $9)`,
+          [subId, userId, subscription.amount, subscription.start_date, subscription.end_date, subscription.subscribe_lunch !== false, subscription.subscribe_dinner !== false, subscription.subscribe_breakfast === true, session.id]
         );
 
         // Create payment record for this month
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     console.error('[admin/clients POST]', err);
     if ((err as { code?: string }).code === '23505') {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'Username already exists' }, { status: 409 });
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Phone number already registered' }, { status: 409 });
     }
     return NextResponse.json<ApiResponse>({ success: false, error: 'Server error' }, { status: 500 });
   }

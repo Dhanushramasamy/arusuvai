@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import Badge from '@/components/ui/Badge';
-import { useTranslation } from '@/i18n';
 import { formatDate, formatToday, getSubscriptionStatus } from '@/lib/dateUtils';
 import type { Subscription, DailyDelivery } from '@/types';
+import { useTranslation } from '@/i18n';
 
 export default function ClientHomePage() {
   const { t } = useTranslation();
@@ -33,9 +33,9 @@ export default function ClientHomePage() {
           (s: any) => s.date.slice(0, 10) === today
         );
 
-        // Construct lunch and dinner statuses checking skips
+        // Construct breakfast, lunch and dinner statuses checking skips
         const mergedDeliveries: DailyDelivery[] = [];
-        const mealTypes = ['Lunch', 'Dinner'];
+        const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
         for (const mealType of mealTypes) {
           const del = todayDeliveries.find((d: DailyDelivery) => d.meal_type === mealType);
           const skip = todaySkips.find((s: any) => s.meal_type === mealType);
@@ -69,6 +69,7 @@ export default function ClientHomePage() {
   const status = sub ? getSubscriptionStatus(sub) : 'expired';
   const isExpired = !sub || status === 'expired';
 
+  const breakfast = deliveries.find((d) => d.meal_type === 'Breakfast');
   const lunch  = deliveries.find((d) => d.meal_type === 'Lunch');
   const dinner = deliveries.find((d) => d.meal_type === 'Dinner');
 
@@ -86,13 +87,13 @@ export default function ClientHomePage() {
         }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
           <div style={{ fontSize: 17, fontWeight: 800, color: '#DC2626', marginBottom: 6 }}>
-            {t('sub.expired')}
+            {t('sub.expiredTitle')}
           </div>
           <div style={{ fontSize: 13, color: '#7F1D1D', lineHeight: 1.5 }}>
             {sub
-              ? `${t('sub.expiredMsg')} (${t('common.end')}: ${formatDate(sub.end_date)})`
-              : t('sub.expiredMsg')
-            }
+              ? t('sub.endedOn', { date: formatDate(sub.end_date) })
+              : t('sub.noActive')
+            } {t('sub.renewPrompt')}
           </div>
         </div>
       ) : sub ? (
@@ -111,17 +112,24 @@ export default function ClientHomePage() {
             {/* Header row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                {sub.type === 'Monthly' ? t('sub.monthly') : sub.type}
+                {t('sub.typePlan', { type: sub.type })}
               </span>
               <Badge variant="active" dot>{t('sub.active')}</Badge>
             </div>
 
             {/* Amount */}
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 30, fontWeight: 900, color: 'var(--color-text)' }}>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: 30, fontWeight: 900, color: 'var(--color-text)' }}>
               ₹{Number(sub.amount).toLocaleString('en-IN')}
             </div>
             <div style={{ fontSize: 11, color: 'var(--color-text-light)', marginTop: 2 }}>
-              {t('sub.monthly')} — {t('meal.lunch')} + {t('meal.dinner')}
+              {t('sub.mealsList', {
+                type: sub.type,
+                meals: [
+                  sub.subscribe_breakfast === true ? t('meal.breakfast') : null,
+                  sub.subscribe_lunch !== false ? t('meal.lunch') : null,
+                  sub.subscribe_dinner !== false ? t('meal.dinner') : null
+                ].filter(Boolean).join(' + ')
+              })}
             </div>
 
             {/* Date row */}
@@ -141,7 +149,7 @@ export default function ClientHomePage() {
             {/* Progress bar */}
             <div style={{ marginTop: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('sub.daysLeft', { count: sub.remaining_service_days ?? 0 })}</span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('sub.remainingDays')}</span>
                 <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--color-primary)' }}>
                   {t('sub.daysLeft', { count: sub.remaining_service_days ?? 0 })}
                 </span>
@@ -163,7 +171,7 @@ export default function ClientHomePage() {
       {!isExpired && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-text)', fontFamily: "'Playfair Display', Georgia, serif" }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-text)', fontFamily: 'Georgia, serif' }}>
               {t('meal.todaysMeals')}
             </h2>
             <span style={{ fontSize: 11, color: 'var(--color-text-light)', fontWeight: 600 }}>
@@ -172,8 +180,9 @@ export default function ClientHomePage() {
           </div>
 
           {[
-            { delivery: lunch,  label: 'Lunch',  icon: '🍱', time: t('client.lunchTime'), active: sub?.subscribe_lunch !== false },
-            { delivery: dinner, label: 'Dinner', icon: '🌙', time: t('client.dinnerTime'), active: sub?.subscribe_dinner !== false },
+            { delivery: breakfast, label: t('meal.breakfast'), icon: '🍳', time: '8:00 – 9:00 AM', active: sub?.subscribe_breakfast === true },
+            { delivery: lunch,     label: t('meal.lunch'),     icon: '🍱', time: '12:00 – 1:00 PM', active: sub?.subscribe_lunch !== false },
+            { delivery: dinner,    label: t('meal.dinner'),    icon: '🌙', time: '7:00 – 8:00 PM', active: sub?.subscribe_dinner !== false },
           ].filter(item => item.active).map(({ delivery, label, icon, time }) => (
             <MealCard
               key={label}
@@ -204,14 +213,12 @@ function MealCard({
   const notAvailable = status === 'not_available';
   const pendingSkip = status === 'pending_skip';
 
-  const labelText = label === 'Lunch' ? t('meal.lunch') : t('meal.dinner');
-
   const statusLabel =
-    delivered     ? t('meal.delivered')
-    : skipped     ? t('meal.skipped')
-    : notAvailable? t('meal.notAvailable')
-    : pendingSkip ? t('skip.pending')
-    : t('meal.scheduled');
+    delivered     ? t('meal.status.delivered')
+    : skipped     ? t('meal.status.skipped')
+    : notAvailable? t('meal.status.notAvailable')
+    : pendingSkip ? t('meal.status.pendingSkip')
+    : t('meal.status.scheduled');
 
   const badgeVariant =
     delivered     ? 'delivered'
@@ -247,16 +254,16 @@ function MealCard({
               color: skipped ? '#6B7280' : 'var(--color-text)',
               textDecoration: skipped ? 'line-through' : 'none',
             }}>
-              {labelText}
+              {label}
             </div>
             <div style={{ fontSize: 11, color: 'var(--color-text-light)', marginTop: 2 }}>
               {skipped
-                ? delivery?.delivery_note || t('meal.skipped')
+                ? delivery?.delivery_note || t('meal.desc.skipped')
                 : pendingSkip
-                ? t('skip.pending')
+                ? t('meal.desc.pendingSkip')
                 : delivered
-                ? t('client.deliveredAt', { time: delivery?.delivered_at ? new Date(delivery.delivered_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '' })
-                : t('client.expected', { time })
+                ? t('meal.desc.delivered', { time: delivery?.delivered_at ? new Date(delivery.delivered_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '' })
+                : t('meal.desc.expected', { time })
               }
             </div>
           </div>

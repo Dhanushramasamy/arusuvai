@@ -2,12 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
-import { useTranslation } from '@/i18n';
 
 interface Fare { location: string; charge: number; }
 
 export default function AdminPricingPage() {
-  const { t } = useTranslation();
   const [fares, setFares] = useState<Fare[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
@@ -53,17 +51,17 @@ export default function AdminPricingPage() {
 
   return (
     <div style={{ animation: 'fadeIn 0.3s ease', maxWidth: 600, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Playfair Display', Georgia, serif", marginBottom: 20 }}>
-        {t('pricing.title')}
+      <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--color-text)', fontFamily: 'Georgia, serif', marginBottom: 20 }}>
+        Delivery Pricing
       </h1>
 
       <div style={{ background: 'white', border: '1.5px solid var(--color-border)', borderRadius: 20, padding: 20 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-light)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
-          {t('pricing.perLocationCharges')}
+          Per-Location Delivery Charges
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 24, color: 'var(--color-text-light)' }}>{t('common.loading')}</div>
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--color-text-light)' }}>Loading…</div>
         ) : (
           <>
             {fares.map((f) => (
@@ -99,7 +97,7 @@ export default function AdminPricingPage() {
                         style={saveBtnStyle}
                         disabled={saving}
                       >
-                        {t('common.save')}
+                        Save
                       </button>
                       <button onClick={() => setEditing(null)} style={cancelBtnStyle}>×</button>
                     </>
@@ -110,7 +108,7 @@ export default function AdminPricingPage() {
                         onClick={() => { setEditing(f.location); setEditVal(String(f.charge)); }}
                         style={editBtnStyle}
                       >
-                        {t('common.edit')}
+                        Edit
                       </button>
                     </>
                   )}
@@ -120,30 +118,30 @@ export default function AdminPricingPage() {
 
             {fares.length === 0 && (
               <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--color-text-light)', fontSize: 13 }}>
-                {t('common.noData')}
+                No locations configured yet.
               </div>
             )}
 
             {/* Add new */}
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-light)', textTransform: 'uppercase', marginBottom: 8 }}>
-                {t('pricing.newLocation')}
+                Add New Location
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
-                  placeholder={t('pricing.areaName')}
+                  placeholder="Area name"
                   value={newLoc}
                   onChange={(e) => setNewLoc(e.target.value)}
                   style={{ flex: 2, padding: '9px 12px', border: '1.5px solid var(--color-border)', borderRadius: 10, fontSize: 12 }}
                 />
                 <input
                   type="number"
-                  placeholder={t('pricing.chargePlaceholder')}
+                  placeholder="₹ charge"
                   value={newCharge}
                   onChange={(e) => setNewCharge(e.target.value)}
                   style={{ flex: 1, padding: '9px 12px', border: '1.5px solid var(--color-border)', borderRadius: 10, fontSize: 12 }}
                 />
-                <Button size="sm" loading={saving} onClick={addNew}>{t('common.add')}</Button>
+                <Button size="sm" loading={saving} onClick={addNew}>Add</Button>
               </div>
             </div>
           </>

@@ -8,6 +8,7 @@ const adminTabs = [
   { href: '/admin',                   label: 'nav.today',    icon: '📦' },
   { href: '/admin/clients',           label: 'nav.clients',  icon: '👥' },
   { href: '/admin/delivery-persons',  label: 'nav.delivery', icon: '🛵' },
+  { href: '/admin/packages',          label: 'nav.packages', icon: '🏷️' },
 ];
 
 export default function AdminLayoutInner({ name, children }: { name: string; children: React.ReactNode }) {
@@ -35,16 +36,19 @@ export default function AdminLayoutInner({ name, children }: { name: string; chi
         boxShadow: '0 1px 8px rgba(0,0,0,0.06)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 38, height: 38, background: 'var(--color-primary)',
-            borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden',
-          }}>
-            <img src="/logo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="Arusuvai Logo"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              objectFit: 'cover',
+            }}
+          />
           <div>
             <div style={{ fontSize: 10, color: 'var(--color-text-light)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Admin</div>
-            <div style={{ fontSize: 17, fontWeight: 900, color: 'var(--color-primary)', fontFamily: "'Playfair Display', Georgia, serif" }}>Arusuvai</div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: 'var(--color-primary)', fontFamily: 'Georgia, serif' }}>Arusuvai</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

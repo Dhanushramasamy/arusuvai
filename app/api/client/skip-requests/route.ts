@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (!date || !meal_type) {
       return NextResponse.json<ApiResponse>({ success: false, error: 'date and meal_type are required' }, { status: 400 });
     }
-    if (!['Lunch', 'Dinner'].includes(meal_type)) {
+    if (!['Breakfast', 'Lunch', 'Dinner'].includes(meal_type)) {
       return NextResponse.json<ApiResponse>({ success: false, error: 'Invalid meal_type' }, { status: 400 });
     }
 
@@ -72,6 +72,33 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Sundays are not service days.' },
         { status: 400 }
       );
+    }
+
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    if (date === today) {
+      const now = new Date();
+      const istTimeStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false });
+      const [hour, minute] = istTimeStr.split(':').map(Number);
+      const timeInMinutes = hour * 60 + minute;
+
+      if (meal_type === 'Breakfast' && timeInMinutes >= 6 * 60) {
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: 'Breakfast skips for today must be requested before 6:00 AM.' },
+          { status: 400 }
+        );
+      }
+      if (meal_type === 'Lunch' && timeInMinutes >= 8 * 60) {
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: 'Lunch skips for today must be requested before 8:00 AM.' },
+          { status: 400 }
+        );
+      }
+      if (meal_type === 'Dinner' && timeInMinutes >= 15 * 60) {
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: 'Dinner skips for today must be requested before 3:00 PM.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if a skip already exists

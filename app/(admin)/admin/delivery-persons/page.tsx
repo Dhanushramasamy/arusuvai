@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import Alert from '@/components/ui/Alert';
-import { useTranslation } from '@/i18n';
+import CustomConfirmModal from '@/components/ui/CustomConfirmModal';
 
 interface DeliveryPerson {
   id: string; name: string; phone_number: string;
@@ -12,18 +11,16 @@ interface DeliveryPerson {
 }
 
 export default function AdminDeliveryPersonsPage() {
-  const { t } = useTranslation();
   const [persons, setPersons] = useState<DeliveryPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [dpToDeactivate, setDpToDeactivate] = useState<DeliveryPerson | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [form, setForm] = useState({ name: '', phone_number: '', username: '', password: '' });
+  const [form, setForm] = useState({ name: '', phone_number: '', password: '' });
   const [selectedPerson, setSelectedPerson] = useState<DeliveryPerson | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', phone_number: '', username: '', password: '' });
+  const [editForm, setEditForm] = useState({ name: '', phone_number: '', password: '' });
+  const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -36,11 +33,7 @@ export default function AdminDeliveryPersonsPage() {
   useEffect(() => { load(); }, []);
 
   async function add() {
-    if (!form.name || !form.phone_number || !form.username || !form.password) {
-      setError('All fields are required.');
-      return;
-    }
-    setSaving(true); setError(''); setSuccess('');
+    setSaving(true); setError('');
     try {
       const res = await fetch('/api/admin/delivery-persons', {
         method: 'POST',
@@ -49,30 +42,24 @@ export default function AdminDeliveryPersonsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setSuccess(t('deliveryPersons.addSuccess'));
         setShowForm(false);
-        setForm({ name: '', phone_number: '', username: '', password: '' });
+        setForm({ name: '', phone_number: '', password: '' });
         load();
       } else {
-        setError(data.error ?? t('common.error'));
+        setError(data.error ?? 'Failed to add');
       }
-    } catch (e) {
-      setError(t('common.error'));
     } finally { setSaving(false); }
   }
 
-  async function confirmDeactivate() {
-    if (!dpToDeactivate) return;
-    setSaving(true);
-    try {
-      await fetch(`/api/admin/delivery-persons/${dpToDeactivate.id}`, { method: 'DELETE' });
-      setDpToDeactivate(null);
-      load();
-    } catch (e) {
-      setError(t('common.error'));
-    } finally {
-      setSaving(false);
-    }
+  async function handleConfirmDeactivate() {
+    if (!confirmDeactivateId) return;
+    await fetch(`/api/admin/delivery-persons/${confirmDeactivateId}`, { method: 'DELETE' });
+    setConfirmDeactivateId(null);
+    load();
+  }
+
+  function remove(id: string) {
+    setConfirmDeactivateId(id);
   }
 
   function startEdit(p: DeliveryPerson) {
@@ -80,7 +67,6 @@ export default function AdminDeliveryPersonsPage() {
     setEditForm({
       name: p.name,
       phone_number: p.phone_number || '',
-      username: p.username || '',
       password: '',
     });
     setShowEditModal(true);
@@ -88,7 +74,7 @@ export default function AdminDeliveryPersonsPage() {
 
   async function edit() {
     if (!selectedPerson) return;
-    setSaving(true); setError(''); setSuccess('');
+    setSaving(true); setError('');
     try {
       const res = await fetch(`/api/admin/delivery-persons/${selectedPerson.id}`, {
         method: 'PATCH',
@@ -97,15 +83,12 @@ export default function AdminDeliveryPersonsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setSuccess(t('deliveryPersons.editSuccess'));
         setShowEditModal(false);
         setSelectedPerson(null);
         load();
       } else {
-        setError(data.error ?? t('common.error'));
+        setError(data.error ?? 'Failed to update');
       }
-    } catch (e) {
-      setError(t('common.error'));
     } finally { setSaving(false); }
   }
 
@@ -116,20 +99,13 @@ export default function AdminDeliveryPersonsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Playfair Display', Georgia, serif", margin: 0 }}>
-            {t('deliveryPersons.title')}
-          </h1>
-          <p style={{ fontSize: 12, color: 'var(--color-text-light)', margin: '2px 0 0' }}>
-            {persons.filter((p) => p.is_active).length} {t('sub.active').toLowerCase()}
-          </p>
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--color-text)', fontFamily: 'Georgia, serif', margin: 0 }}>Delivery Persons</h1>
+          <p style={{ fontSize: 12, color: 'var(--color-text-light)', margin: '2px 0 0' }}>{persons.filter((p) => p.is_active).length} active</p>
         </div>
-        <Button onClick={() => { setShowForm((p) => !p); setError(''); setSuccess(''); }}>
-          {showForm ? '✕ ' + t('common.cancel') : t('admin.addPerson')}
+        <Button onClick={() => setShowForm((p) => !p)}>
+          {showForm ? '✕ Cancel' : '+ Add Person'}
         </Button>
       </div>
-
-      {success && <Alert type="success" onClose={() => setSuccess('')}>{success}</Alert>}
-      {error && <Alert type="error" onClose={() => setError('')}>{error}</Alert>}
 
       {/* Add Form */}
       {showForm && (
@@ -138,19 +114,18 @@ export default function AdminDeliveryPersonsPage() {
           borderRadius: 16, padding: 18, marginBottom: 20,
           animation: 'slideUp 0.25s ease',
         }}>
-          <h3 style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-primary)', margin: '0 0 14px' }}>{t('deliveryPersons.add')}</h3>
+          <h3 style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-primary)', margin: '0 0 14px' }}>Add Delivery Person</h3>
+          {error && <div style={errorStyle}>{error}</div>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
             {[
-              { label: t('clients.fullName') + ' *', key: 'name',         placeholder: 'e.g. Murugan' },
-              { label: t('clients.phoneNumber') + ' *', key: 'phone_number', placeholder: 'e.g. 99001 23456' },
-              { label: t('clients.username') + ' *', key: 'username',     placeholder: 'e.g. murugan_driver' },
-              { label: t('clients.password') + ' *', key: 'password',     placeholder: 'Initial password' },
+              { label: 'Name *',     key: 'name',         placeholder: 'e.g. Murugan' },
+              { label: 'Phone *',    key: 'phone_number', placeholder: 'e.g. 99001 23456' },
+              { label: 'Password *', key: 'password',     placeholder: 'Initial password' },
             ].map(({ label, key, placeholder }) => (
               <div key={key}>
                 <label style={fieldLabel}>{label}</label>
                 <input
                   placeholder={placeholder}
-                  type={key === 'password' ? 'password' : 'text'}
                   value={(form as Record<string, string>)[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                   style={inputSm}
@@ -158,13 +133,13 @@ export default function AdminDeliveryPersonsPage() {
               </div>
             ))}
           </div>
-          <Button loading={saving} onClick={add}>{t('common.add')} →</Button>
+          <Button loading={saving} onClick={add}>Add →</Button>
         </div>
       )}
 
       {/* List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-light)' }}>{t('common.loading')}</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-light)' }}>Loading…</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {persons.filter((p) => p.is_active).map((p, idx) => (
@@ -190,16 +165,16 @@ export default function AdminDeliveryPersonsPage() {
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-text)' }}>{p.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--color-text-light)' }}>
-                    📞 {p.phone_number || '—'} · @{p.username}
+                    📞 {p.phone_number || '—'}
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{ textAlign: 'right', marginRight: 6 }}>
-                  <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 22, fontWeight: 900, color: 'var(--color-primary)' }}>
+                  <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 900, color: 'var(--color-primary)' }}>
                     {p.delivered_today ?? 0}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--color-text-light)', fontWeight: 600 }}>{t('meal.delivered').toLowerCase()}</div>
+                  <div style={{ fontSize: 10, color: 'var(--color-text-light)', fontWeight: 600 }}>delivered today</div>
                 </div>
                 <button
                   onClick={() => startEdit(p)}
@@ -209,24 +184,24 @@ export default function AdminDeliveryPersonsPage() {
                     fontWeight: 700, fontSize: 11, cursor: 'pointer',
                   }}
                 >
-                  {t('common.edit')}
+                  Edit
                 </button>
                 <button
-                  onClick={() => setDpToDeactivate(p)}
+                  onClick={() => remove(p.id)}
                   style={{
                     padding: '6px 10px', background: 'white', color: '#DC2626',
                     border: '1px solid #FECACA', borderRadius: 8,
                     fontWeight: 700, fontSize: 11, cursor: 'pointer',
                   }}
                 >
-                  {t('common.delete')}
+                  Remove
                 </button>
               </div>
             </div>
           ))}
           {persons.filter((p) => p.is_active).length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-light)', fontSize: 14 }}>
-              {t('common.noData')}
+              No delivery persons yet. Add one to get started.
             </div>
           )}
         </div>
@@ -234,13 +209,13 @@ export default function AdminDeliveryPersonsPage() {
 
       {/* Edit Modal */}
       <Modal open={showEditModal} onClose={() => { setShowEditModal(false); setError(''); }}>
-        <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', marginBottom: 4 }}>{t('deliveryPersons.edit')}</h3>
+        <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', marginBottom: 4 }}>Edit Delivery Person</h3>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>For {selectedPerson?.name}</p>
+        {error && <div style={errorStyle}>{error}</div>}
         {[
-          { label: t('clients.fullName') + ' *', key: 'name', type: 'text', placeholder: 'Name' },
-          { label: t('clients.phoneNumber') + ' *', key: 'phone_number', type: 'text', placeholder: 'Phone Number' },
-          { label: t('clients.username') + ' *', key: 'username', type: 'text', placeholder: 'Username' },
-          { label: t('clients.password') + ' (' + t('clients.password').toLowerCase() + ' ' + t('clients.expires').toLowerCase() + ')', key: 'password', type: 'password', placeholder: 'New Password' },
+          { label: 'Name *', key: 'name', type: 'text', placeholder: 'Name' },
+          { label: 'Phone *', key: 'phone_number', type: 'text', placeholder: 'Phone Number' },
+          { label: 'Password (leave blank to keep current)', key: 'password', type: 'password', placeholder: 'New Password' },
         ].map(({ label, key, type, placeholder }) => (
           <div key={key} style={{ marginBottom: 12 }}>
             <label style={fieldLabel}>{label}</label>
@@ -254,36 +229,20 @@ export default function AdminDeliveryPersonsPage() {
           </div>
         ))}
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <Button variant="ghost" fullWidth onClick={() => setShowEditModal(false)}>{t('common.cancel')}</Button>
-          <Button loading={saving} fullWidth onClick={edit}>{t('common.save')}</Button>
+          <Button variant="ghost" fullWidth onClick={() => setShowEditModal(false)}>Cancel</Button>
+          <Button loading={saving} fullWidth onClick={edit}>Save Changes</Button>
         </div>
       </Modal>
 
-      {/* Custom Deactivate Confirm Modal */}
-      <Modal open={!!dpToDeactivate} onClose={() => setDpToDeactivate(null)}>
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ fontSize: 44, marginBottom: 10 }}>⚠️</div>
-          <h3 style={{ fontSize: 19, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 8px' }}>
-            {t('deliveryPersons.deactivateConfirm')}
-          </h3>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-            {t('deliveryPersons.deactivateConfirmBody')}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="ghost" fullWidth onClick={() => setDpToDeactivate(null)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            fullWidth
-            loading={saving}
-            onClick={confirmDeactivate}
-            style={{ background: '#DC2626', color: 'white', border: 'none', borderRadius: 12, fontWeight: 700 }}
-          >
-            {t('deliveryPersons.deactivate')}
-          </Button>
-        </div>
-      </Modal>
+      <CustomConfirmModal
+        open={confirmDeactivateId !== null}
+        onClose={() => setConfirmDeactivateId(null)}
+        onConfirm={handleConfirmDeactivate}
+        title="Deactivate Delivery Person"
+        message="Are you sure you want to deactivate this delivery person? They will no longer be able to log in or receive assignments."
+        confirmText="Deactivate"
+        variant="danger"
+      />
     </div>
   );
 }

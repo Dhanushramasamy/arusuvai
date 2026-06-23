@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
       // 1. Get all active clients with valid subscription for today, including meal flags
       const clients = await client.query(
-        `SELECT u.id, u.name, s.subscribe_lunch, s.subscribe_dinner
+        `SELECT u.id, u.name, s.subscribe_breakfast, s.subscribe_lunch, s.subscribe_dinner
          FROM users u
          JOIN subscriptions s ON s.client_id = u.id
          WHERE u.role = 'client'
@@ -31,6 +31,9 @@ export async function POST(req: NextRequest) {
       // Create set of active client_id + meal_type pairs
       const activePairs: { client_id: string; meal_type: string }[] = [];
       for (const c of clients.rows) {
+        if (c.subscribe_breakfast === true) {
+          activePairs.push({ client_id: c.id, meal_type: 'Breakfast' });
+        }
         if (c.subscribe_lunch !== false) {
           activePairs.push({ client_id: c.id, meal_type: 'Lunch' });
         }

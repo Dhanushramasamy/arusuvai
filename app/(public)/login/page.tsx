@@ -95,7 +95,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                placeholder={t('auth.usernamePlaceholder')}
                 required
                 autoComplete="username"
                 style={{ ...inputStyle, paddingLeft: 40 }}

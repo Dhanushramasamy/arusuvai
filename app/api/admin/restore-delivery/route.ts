@@ -17,6 +17,14 @@ export async function POST(req: NextRequest) {
         [client_id, date, meal_type]
       );
 
+      // Update the skip request to 'rejected' if client-initiated
+      await db.query(
+        `UPDATE skip_requests
+         SET status = 'rejected', approved_at = NULL, approved_by = NULL
+         WHERE client_id = $1 AND date = $2 AND meal_type = $3 AND is_admin_initiated = false`,
+        [client_id, date, meal_type]
+      );
+
       // Restore delivery to pending
       await db.query(
         `UPDATE daily_deliveries

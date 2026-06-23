@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Outfit:wght@100..900&display=swap');
 
 /* ================================================================
    ARUSUVAI — Design Tokens
@@ -46,15 +46,18 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body, button, input, select, textarea {
-  font-family: 'Playfair Display', Georgia, serif;
-}
-
 body {
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.5;
   min-height: 100vh;
+}
+input, button, select, textarea, .sans-font {
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+}
+.serif-font {
+  font-family: 'Playfair Display', Georgia, Cambria, serif;
 }
 
 /* ================================================================
@@ -68,8 +71,8 @@ body {
   --color-accent-dark: #D4891A;
   --color-accent-light:#FEF3DC;
 
-  --font-family-display: 'Playfair Display', Georgia, Cambria, "Times New Roman", serif;
-  --font-family-body:    'Playfair Display', Georgia, sans-serif;
+  --font-family-display: 'Playfair Display', Georgia, Cambria, serif;
+  --font-family-body:    'Outfit', sans-serif;
 }
 
 /* ================================================================

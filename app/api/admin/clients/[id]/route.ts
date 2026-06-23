@@ -17,7 +17,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { name, phone_number, location, username, password, delivery_note, sub_amount, start_date, end_date, subscribe_lunch, subscribe_dinner } = body;
+    const { name, phone_number, location, password, delivery_note, sub_amount, start_date, end_date, subscribe_lunch, subscribe_dinner, subscribe_breakfast } = body;
 
     const db = await pool.connect();
     try {
@@ -35,6 +35,8 @@ export async function PATCH(
       if (phone_number !== undefined) {
         updates.push(`phone_number = $${placeholderIdx++}`);
         values.push(phone_number);
+        updates.push(`username = $${placeholderIdx++}`);
+        values.push(phone_number);
       }
       if (location !== undefined) {
         updates.push(`location = $${placeholderIdx++}`);
@@ -43,10 +45,6 @@ export async function PATCH(
       if (delivery_note !== undefined) {
         updates.push(`delivery_note = $${placeholderIdx++}`);
         values.push(delivery_note);
-      }
-      if (username !== undefined) {
-        updates.push(`username = $${placeholderIdx++}`);
-        values.push(username);
       }
       if (password) {
         const passwordHash = await bcrypt.hash(password, 10);
@@ -97,6 +95,10 @@ export async function PATCH(
             subUpdates.push(`subscribe_dinner = $${subPlaceholderIdx++}`);
             subValues.push(!!subscribe_dinner);
           }
+          if (subscribe_breakfast !== undefined) {
+            subUpdates.push(`subscribe_breakfast = $${subPlaceholderIdx++}`);
+            subValues.push(!!subscribe_breakfast);
+          }
 
           if (subUpdates.length > 0) {
             await db.query(
@@ -108,9 +110,9 @@ export async function PATCH(
           // No subscription exists, create one!
           const subId = `sub_${randomUUID().replace(/-/g, '').slice(0, 10)}`;
           await db.query(
-            `INSERT INTO subscriptions (id, client_id, type, amount, start_date, end_date, status, subscribe_lunch, subscribe_dinner, created_by)
-             VALUES ($1, $2, 'Monthly', $3, $4, $5, 'active', $6, $7, $8)`,
-            [subId, id, parseFloat(sub_amount), start_date, end_date, subscribe_lunch !== false, subscribe_dinner !== false, session.id]
+            `INSERT INTO subscriptions (id, client_id, type, amount, start_date, end_date, status, subscribe_lunch, subscribe_dinner, subscribe_breakfast, created_by)
+             VALUES ($1, $2, 'Monthly', $3, $4, $5, 'active', $6, $7, $8, $9)`,
+            [subId, id, parseFloat(sub_amount), start_date, end_date, subscribe_lunch !== false, subscribe_dinner !== false, subscribe_breakfast === true, session.id]
           );
 
           // Create payment for the starting month
@@ -137,7 +139,7 @@ export async function PATCH(
   } catch (err: unknown) {
     console.error('[admin/clients/[id] PATCH]', err);
     if ((err as { code?: string }).code === '23505') {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'Username already exists' }, { status: 409 });
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Phone number already registered' }, { status: 409 });
     }
     return NextResponse.json<ApiResponse>({ success: false, error: 'Server error' }, { status: 500 });
   }
