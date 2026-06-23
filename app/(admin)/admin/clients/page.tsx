@@ -331,7 +331,7 @@ export default function AdminClientsPage() {
               { label: 'Password *', key: 'password', placeholder: 'Initial password' },
               { label: 'Delivery Note', key: 'delivery_note', placeholder: 'e.g. Gate 2, ring bell' },
             ].map(({ label, key, placeholder }) => (
-              <div key={key}>
+              <div key={key} style={key === 'delivery_note' ? { gridColumn: 'span 2' } : undefined}>
                 <label style={fieldLabel}>{label}</label>
                 <input
                   placeholder={placeholder}
@@ -563,7 +563,7 @@ export default function AdminClientsPage() {
       )}
 
       {/* Renew Modal */}
-      <Modal open={showRenewModal} onClose={() => { setShowRenewModal(false); setError(''); }}>
+      <Modal open={showRenewModal} onClose={() => { setShowRenewModal(false); setError(''); }} maxWidth={480}>
         <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', marginBottom: 4 }}>Renew Subscription</h3>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>For {selectedClient?.name}</p>
         {error && <div style={errorStyle}>{error}</div>}
@@ -649,7 +649,7 @@ export default function AdminClientsPage() {
       </Modal>
 
       {/* Edit Client Modal */}
-      <Modal open={showEditModal} onClose={() => { setShowEditModal(false); setError(''); }}>
+      <Modal open={showEditModal} onClose={() => { setShowEditModal(false); setError(''); }} maxWidth={560}>
         <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', marginBottom: 4 }}>Edit Client Details</h3>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>For {selectedClient?.name}</p>
         {error && <div style={errorStyle}>{error}</div>}
@@ -662,7 +662,7 @@ export default function AdminClientsPage() {
             { label: 'Password (leave blank to keep current)', key: 'password', type: 'password' },
             { label: 'Delivery Note', key: 'delivery_note', type: 'text' },
           ].map(({ label, key, type }) => (
-            <div key={key}>
+            <div key={key} style={key === 'delivery_note' ? { gridColumn: 'span 2' } : undefined}>
               <label style={fieldLabel}>{label}</label>
               <input
                 type={type}
