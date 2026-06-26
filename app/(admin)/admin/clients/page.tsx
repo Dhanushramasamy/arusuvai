@@ -48,6 +48,18 @@ export default function AdminClientsPage() {
   const [error, setError] = useState('');
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
 
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('clients_view_mode') as 'grid' | 'list') || 'grid';
+    }
+    return 'grid';
+  });
+
+  const handleSetViewMode = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('clients_view_mode', mode);
+  };
+
   const [packages, setPackages] = useState<any[]>([]);
   const [selectedPkgId, setSelectedPkgId] = useState<string>('custom');
   const [selectedRenewPkgId, setSelectedRenewPkgId] = useState<string>('custom');
@@ -458,17 +470,158 @@ export default function AdminClientsPage() {
         </div>
       )}
 
-      {/* Search */}
-      <input
-        placeholder="🔍 Search by name or location…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ ...inputSm, marginBottom: 16, width: '100%' }}
-      />
+      {/* Search & View Switcher */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <input
+          placeholder="🔍 Search by name or location…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ ...inputSm, flex: 1 }}
+        />
+        <div style={{ display: 'flex', border: '1.5px solid var(--color-border)', borderRadius: 10, overflow: 'hidden', background: 'white' }}>
+          <button
+            onClick={() => handleSetViewMode('grid')}
+            style={{
+              padding: '0 14px',
+              border: 'none',
+              background: viewMode === 'grid' ? 'var(--color-primary-light)' : 'white',
+              color: viewMode === 'grid' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: 'Outfit, sans-serif',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            🎴 Cards
+          </button>
+          <button
+            onClick={() => handleSetViewMode('list')}
+            style={{
+              padding: '0 14px',
+              border: 'none',
+              background: viewMode === 'list' ? 'var(--color-primary-light)' : 'white',
+              color: viewMode === 'list' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              borderLeft: '1.5px solid var(--color-border)',
+              gap: 6,
+              fontFamily: 'Outfit, sans-serif',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            📝 List
+          </button>
+        </div>
+      </div>
 
-      {/* Client cards */}
+      {/* Client cards / List view */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-light)' }}>Loading…</div>
+      ) : viewMode === 'list' ? (
+        <div style={{ background: 'white', border: '1.5px solid var(--color-border)', borderRadius: 16, overflow: 'hidden' }}>
+          <style>{`
+            .table-row-hover:hover {
+              background-color: var(--color-bg) !important;
+            }
+          `}</style>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 700 }}>
+              <thead>
+                <tr style={{ background: 'var(--color-bg)', borderBottom: '1.5px solid var(--color-border)' }}>
+                  <th style={thStyle}>Client Details</th>
+                  <th style={thStyle}>Location</th>
+                  <th style={thStyle}>Plan & Meals</th>
+                  <th style={thStyle}>Status</th>
+                  <th style={thStyle}>Validity</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c) => {
+                  const status = getSubStatus(c);
+                  const rem = remainingDays(c);
+                  const isExpired = status === 'expired';
+                  const meals = [
+                    c.subscribe_breakfast === true ? 'Breakfast 🍳' : null,
+                    c.subscribe_lunch !== false ? 'Lunch 🍱' : null,
+                    c.subscribe_dinner !== false ? 'Dinner 🌙' : null,
+                  ].filter(Boolean).join(' + ') || 'None';
+
+                  return (
+                    <tr key={c.id} style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.15s ease' }} className="table-row-hover">
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: 14 }}>{c.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>📞 {c.phone_number || '—'}</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontSize: 13, color: 'var(--color-text)' }}>📍 {c.location || '—'}</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>
+                          {c.sub_amount ? `₹${Number(c.sub_amount).toLocaleString('en-IN')}` : '—'}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-light)', marginTop: 2 }}>{meals}</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <Badge variant={status === 'active' ? 'active' : status === 'not_started' ? 'not_started' : 'expired'}>
+                          {status === 'active' ? 'Active' : status === 'not_started' ? 'Not Started' : 'Expired'}
+                        </Badge>
+                      </td>
+                      <td style={tdStyle}>
+                        {isExpired ? (
+                          <div style={{ fontSize: 11, color: 'var(--color-error)', fontWeight: 600 }}>
+                            {c.end_date ? `Ended ${new Date(c.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : 'No sub'}
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)' }}>{rem} days left</div>
+                            <div style={{ fontSize: 10, color: 'var(--color-text-light)', marginTop: 2 }}>
+                              Ends {c.end_date ? new Date(c.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                            </div>
+                          </>
+                        )}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => {
+                              setSelectedClient(c);
+                              setRenewForm({ amount: '', start_date: '', end_date: '' });
+                              setSelectedRenewPkgId('custom');
+                              setShowRenewModal(true);
+                            }}
+                            style={{ padding: '6px 10px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
+                          >
+                            Renew
+                          </button>
+                          <button
+                            onClick={() => startEdit(c)}
+                            style={{ padding: '6px 10px', background: '#EFF6FF', color: '#3B82F6', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteClient(c.id)}
+                            style={{ padding: '6px 8px', background: 'white', color: '#DC2626', border: '1px solid #FECACA', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
           {filtered.map((c) => {
@@ -764,4 +917,16 @@ const errorStyle: React.CSSProperties = {
   background: '#FEF2F2', border: '1px solid #FECACA',
   borderRadius: 10, padding: '8px 12px', fontSize: 12,
   fontWeight: 600, color: '#DC2626', marginBottom: 12,
+};
+const thStyle: React.CSSProperties = {
+  padding: '12px 16px',
+  fontSize: 10,
+  fontWeight: 700,
+  color: 'var(--color-text-light)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+};
+const tdStyle: React.CSSProperties = {
+  padding: '12px 16px',
+  verticalAlign: 'middle',
 };

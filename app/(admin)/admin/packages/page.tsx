@@ -13,6 +13,7 @@ export default function SubscriptionPackagesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -41,6 +42,33 @@ export default function SubscriptionPackagesPage() {
     loadPackages();
   }, []);
 
+  const startEdit = (pkg: { id: string; name: string; days: number; diet_type: string; meal_type: string; price: number | string }) => {
+    setEditingId(pkg.id);
+    const meals = pkg.meal_type || '';
+    setForm({
+      name: pkg.name,
+      days: String(pkg.days),
+      diet_type: pkg.diet_type,
+      subscribe_breakfast: meals.includes('Breakfast'),
+      subscribe_lunch: meals.includes('Lunch'),
+      subscribe_dinner: meals.includes('Dinner'),
+      price: String(pkg.price),
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({
+      name: '',
+      days: '',
+      diet_type: 'Veg',
+      subscribe_breakfast: false,
+      subscribe_lunch: true,
+      subscribe_dinner: false,
+      price: '',
+    });
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -58,8 +86,11 @@ export default function SubscriptionPackagesPage() {
     }
 
     try {
-      const res = await fetch('/api/admin/packages', {
-        method: 'POST',
+      const url = editingId ? `/api/admin/packages/${editingId}` : '/api/admin/packages';
+      const method = editingId ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name.trim(),
@@ -81,9 +112,10 @@ export default function SubscriptionPackagesPage() {
           subscribe_dinner: false,
           price: '',
         });
+        setEditingId(null);
         loadPackages();
       } else {
-        setError(data.error ?? 'Failed to create package');
+        setError(data.error ?? `Failed to ${editingId ? 'update' : 'create'} package`);
       }
     } catch {
       setError('Server error');
@@ -132,7 +164,7 @@ export default function SubscriptionPackagesPage() {
           borderRadius: 20, padding: 20,
         }}>
           <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-primary)', margin: '0 0 16px', borderBottom: '1px solid var(--color-border)', paddingBottom: 10 }}>
-            {t('pkg.create')}
+            {editingId ? 'Edit Predefined Package' : t('pkg.create')}
           </h3>
           {error && (
             <div style={{
@@ -234,9 +266,16 @@ export default function SubscriptionPackagesPage() {
               </div>
             </div>
 
-            <Button type="submit" loading={saving} style={{ marginTop: 8 }}>
-              {t('pkg.submit')}
-            </Button>
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              {editingId && (
+                <Button type="button" variant="ghost" onClick={cancelEdit} style={{ flex: 1 }}>
+                  {t('common.cancel')}
+                </Button>
+              )}
+              <Button type="submit" loading={saving} style={{ flex: 1 }}>
+                {editingId ? 'Update Package' : t('pkg.submit')}
+              </Button>
+            </div>
           </form>
         </div>
 
@@ -281,6 +320,16 @@ export default function SubscriptionPackagesPage() {
                     <div style={{ fontSize: 17, fontWeight: 900, color: 'var(--color-primary)' }}>
                       ₹{Number(pkg.price).toLocaleString('en-IN')}
                     </div>
+                    <button
+                      onClick={() => startEdit(pkg)}
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--color-primary)',
+                        fontSize: 16, cursor: 'pointer', padding: 4,
+                      }}
+                      title={t('common.edit')}
+                    >
+                      ✏️
+                    </button>
                     <button
                       onClick={() => handleDelete(pkg.id)}
                       style={{

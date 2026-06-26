@@ -5,6 +5,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import CustomDropdown from '@/components/ui/CustomDropdown';
+import CustomConfirmModal from '@/components/ui/CustomConfirmModal';
 import type { DailyDelivery } from '@/types';
 
 function dateStr(d: Date) {
@@ -30,6 +31,7 @@ export default function AdminTodayPage() {
   const [assignPerson, setAssignPerson] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [confirmSkipDelivery, setConfirmSkipDelivery] = useState<DailyDelivery | null>(null);
 
   const loadDeliveries = useCallback(async () => {
     setLoading(true);
@@ -246,7 +248,7 @@ export default function AdminTodayPage() {
                   onToggle={() => toggleSelect(d.id)}
                   onApproveSkip={() => d.skip_req_id && approveSkip(d.skip_req_id)}
                   onRejectSkip={() => d.skip_req_id && rejectSkip(d.skip_req_id)}
-                  onAdminSkip={() => adminSkip(d)}
+                  onAdminSkip={() => setConfirmSkipDelivery(d)}
                   onRefresh={loadDeliveries}
                 />
               ))}
@@ -291,6 +293,20 @@ export default function AdminTodayPage() {
           <Button variant="primary" fullWidth onClick={bulkAssign}>Assign →</Button>
         </div>
       </Modal>
+
+      <CustomConfirmModal
+        open={confirmSkipDelivery !== null}
+        onClose={() => setConfirmSkipDelivery(null)}
+        onConfirm={async () => {
+          if (!confirmSkipDelivery) return;
+          await adminSkip(confirmSkipDelivery);
+          setConfirmSkipDelivery(null);
+        }}
+        title="Confirm Skip for User"
+        message={`Are you sure you want to skip ${confirmSkipDelivery?.meal_type} on ${confirmSkipDelivery ? formatDateDisplay(confirmSkipDelivery.date) : ''} for ${confirmSkipDelivery?.client_name}?`}
+        confirmText="Skip Meal"
+        variant="danger"
+      />
     </div>
   );
 }
