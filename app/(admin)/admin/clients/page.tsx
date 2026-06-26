@@ -47,6 +47,14 @@ export default function AdminClientsPage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
+  const [showBulkSkipModal, setShowBulkSkipModal] = useState(false);
+  const [bulkSkipForm, setBulkSkipForm] = useState({
+    start_date: '',
+    end_date: '',
+    subscribe_breakfast: false,
+    subscribe_lunch: true,
+    subscribe_dinner: false,
+  });
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     if (typeof window !== 'undefined') {
@@ -302,6 +310,64 @@ export default function AdminClientsPage() {
 
   function deleteClient(id: string) {
     setConfirmDeactivateId(id);
+  }
+
+  async function submitBulkSkip() {
+    if (!selectedClient) return;
+    if (!bulkSkipForm.start_date || !bulkSkipForm.end_date) {
+      setError('Start date and End date are required');
+      return;
+    }
+    if (bulkSkipForm.start_date > bulkSkipForm.end_date) {
+      setError('Start date cannot be after End date');
+      return;
+    }
+
+    const mealTypes: string[] = [];
+    if (bulkSkipForm.subscribe_breakfast) mealTypes.push('Breakfast');
+    if (bulkSkipForm.subscribe_lunch) mealTypes.push('Lunch');
+    if (bulkSkipForm.subscribe_dinner) mealTypes.push('Dinner');
+
+    if (mealTypes.length === 0) {
+      setError('Please select at least one meal to skip');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/admin/skip-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: selectedClient.id,
+          start_date: bulkSkipForm.start_date,
+          end_date: bulkSkipForm.end_date,
+          meal_types: mealTypes,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setShowBulkSkipModal(false);
+        setBulkSkipForm({
+          start_date: '',
+          end_date: '',
+          subscribe_breakfast: false,
+          subscribe_lunch: true,
+          subscribe_dinner: false,
+        });
+        setSelectedClient(null);
+        loadClients();
+      } else {
+        setError(data.error ?? 'Failed to skip meals');
+      }
+    } catch {
+      setError('Server error');
+    } finally {
+      setSaving(false);
+    }
   }
 
   const filtered = clients.filter((c) =>
@@ -602,6 +668,22 @@ export default function AdminClientsPage() {
                             Renew
                           </button>
                           <button
+                            onClick={() => {
+                              setSelectedClient(c);
+                              setBulkSkipForm({
+                                start_date: todayStr,
+                                end_date: todayStr,
+                                subscribe_breakfast: c.subscribe_breakfast === true,
+                                subscribe_lunch: c.subscribe_lunch !== false,
+                                subscribe_dinner: c.subscribe_dinner !== false,
+                              });
+                              setShowBulkSkipModal(true);
+                            }}
+                            style={{ padding: '6px 10px', background: 'var(--color-accent-light)', color: 'var(--color-accent-dark)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
+                          >
+                            Skip
+                          </button>
+                          <button
                             onClick={() => startEdit(c)}
                             style={{ padding: '6px 10px', background: '#EFF6FF', color: '#3B82F6', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
                           >
@@ -686,9 +768,25 @@ export default function AdminClientsPage() {
                       setSelectedRenewPkgId('custom');
                       setShowRenewModal(true);
                     }}
-                    style={{ flex: 1, padding: '7px 4px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                    style={{ flex: 1.2, padding: '7px 4px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
                   >
                     Renew
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedClient(c);
+                      setBulkSkipForm({
+                        start_date: todayStr,
+                        end_date: todayStr,
+                        subscribe_breakfast: c.subscribe_breakfast === true,
+                        subscribe_lunch: c.subscribe_lunch !== false,
+                        subscribe_dinner: c.subscribe_dinner !== false,
+                      });
+                      setShowBulkSkipModal(true);
+                    }}
+                    style={{ flex: 1, padding: '7px 4px', background: 'var(--color-accent-light)', color: 'var(--color-accent-dark)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+                  >
+                    Skip
                   </button>
                   <button
                     onClick={() => startEdit(c)}
@@ -714,6 +812,73 @@ export default function AdminClientsPage() {
           No clients found.
         </div>
       )}
+
+      {/* Bulk Skip Modal */}
+      <Modal open={showBulkSkipModal} onClose={() => { setShowBulkSkipModal(false); setError(''); }} maxWidth={480}>
+        <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', marginBottom: 4 }}>Skip Meals for Client</h3>
+        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>For {selectedClient?.name}</p>
+        {error && <div style={errorStyle}>{error}</div>}
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          <div>
+            <label style={fieldLabel}>Start Date</label>
+            <input
+              type="date"
+              value={bulkSkipForm.start_date}
+              onChange={(e) => setBulkSkipForm((f) => ({ ...f, start_date: e.target.value }))}
+              style={inputSm}
+            />
+          </div>
+          <div>
+            <label style={fieldLabel}>End Date</label>
+            <input
+              type="date"
+              value={bulkSkipForm.end_date}
+              onChange={(e) => setBulkSkipForm((f) => ({ ...f, end_date: e.target.value }))}
+              style={inputSm}
+            />
+          </div>
+        </div>
+
+        {bulkSkipForm.start_date && bulkSkipForm.end_date && (
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', marginBottom: 12 }}>
+            {countServiceDays(new Date(bulkSkipForm.start_date), new Date(bulkSkipForm.end_date))} service days will be skipped (excluding Sundays)
+          </div>
+        )}
+
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-light)', textTransform: 'uppercase', marginBottom: 10 }}>Select Meals to Skip</div>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={bulkSkipForm.subscribe_breakfast}
+              onChange={(e) => setBulkSkipForm((f) => ({ ...f, subscribe_breakfast: e.target.checked }))}
+            />
+            Breakfast 🍳
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={bulkSkipForm.subscribe_lunch}
+              onChange={(e) => setBulkSkipForm((f) => ({ ...f, subscribe_lunch: e.target.checked }))}
+            />
+            Lunch 🍱
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={bulkSkipForm.subscribe_dinner}
+              onChange={(e) => setBulkSkipForm((f) => ({ ...f, subscribe_dinner: e.target.checked }))}
+            />
+            Dinner 🌙
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button variant="ghost" fullWidth onClick={() => setShowBulkSkipModal(false)}>Cancel</Button>
+          <Button loading={saving} fullWidth onClick={submitBulkSkip}>Save Skips</Button>
+        </div>
+      </Modal>
 
       {/* Renew Modal */}
       <Modal open={showRenewModal} onClose={() => { setShowRenewModal(false); setError(''); }} maxWidth={480}>
