@@ -5,6 +5,70 @@ import pool from '@/lib/db';
 import { getSession } from '@/lib/session';
 import type { ApiResponse } from '@/types';
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') {
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    // Fetch user
+    const userRes = await pool.query(
+      `SELECT id, name, phone_number, location, delivery_note, is_active, created_at FROM users WHERE id = $1 AND role = 'client'`,
+      [id]
+    );
+
+    if (userRes.rows.length === 0) {
+      return NextResponse.json<ApiResponse>({ success: false, error: 'Client not found' }, { status: 404 });
+    }
+
+    const user = userRes.rows[0];
+
+    // Fetch latest subscription
+    const subRes = await pool.query(
+      `SELECT * FROM subscriptions WHERE client_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      [id]
+    );
+
+    const subscription = subRes.rows[0] || null;
+
+    // Fetch skip requests
+    const skipsRes = await pool.query(
+      `SELECT * FROM skip_requests WHERE client_id = $1 ORDER BY date DESC LIMIT 10`,
+      [id]
+    );
+
+    // Fetch delivery history
+    const deliveriesRes = await pool.query(
+      `SELECT d.*, u.name as delivery_person_name
+       FROM daily_deliveries d
+       LEFT JOIN users u ON d.delivery_person_id = u.id
+       WHERE d.client_id = $1
+       ORDER BY d.date DESC, d.meal_type DESC
+       LIMIT 15`,
+      [id]
+    );
+
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      data: {
+        client: user,
+        subscription,
+        skips: skipsRes.rows,
+        deliveries: deliveriesRes.rows,
+      },
+    });
+  } catch (err) {
+    console.error('[admin/clients/[id] GET]', err);
+    return NextResponse.json<ApiResponse>({ success: false, error: 'Server error' }, { status: 500 });
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -1,16 +1,16 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import Modal from '@/components/ui/Modal';
 import { countServiceDays } from '@/lib/dateUtils';
-import CustomConfirmModal from '@/components/ui/CustomConfirmModal';
 
 function calculateEndDate(startDateStr: string, serviceDays: number): string {
   if (serviceDays <= 0) return startDateStr;
   const d = new Date(startDateStr + 'T00:00:00');
-  let current = new Date(d);
+  const current = new Date(d);
   let serviceCount = 0;
   while (serviceCount < serviceDays) {
     if (current.getDay() !== 0) { // Not Sunday
@@ -34,27 +34,16 @@ interface ClientRow {
   subscribe_breakfast?: boolean;
 }
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
 export default function AdminClientsPage() {
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showRenewModal, setShowRenewModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<ClientRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
-  const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
-  const [showBulkSkipModal, setShowBulkSkipModal] = useState(false);
-  const [bulkSkipForm, setBulkSkipForm] = useState({
-    start_date: '',
-    end_date: '',
-    subscribe_breakfast: false,
-    subscribe_lunch: true,
-    subscribe_dinner: false,
-  });
+
+  const [packages, setPackages] = useState<any[]>([]);
+  const [selectedPkgId, setSelectedPkgId] = useState<string>('custom');
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     if (typeof window !== 'undefined') {
@@ -68,27 +57,12 @@ export default function AdminClientsPage() {
     localStorage.setItem('clients_view_mode', mode);
   };
 
-  const [packages, setPackages] = useState<any[]>([]);
-  const [selectedPkgId, setSelectedPkgId] = useState<string>('custom');
-  const [selectedRenewPkgId, setSelectedRenewPkgId] = useState<string>('custom');
-
   const [form, setForm] = useState({
     name: '', phone_number: '', location: '',
     password: '', delivery_note: '',
     sub_amount: '', sub_start: '', sub_end: '',
     subscribe_breakfast: false,
     subscribe_lunch: true, subscribe_dinner: true,
-  });
-
-  const [editForm, setEditForm] = useState({
-    name: '', phone_number: '', location: '', password: '', delivery_note: '',
-    sub_amount: '', start_date: '', end_date: '',
-    subscribe_breakfast: false,
-    subscribe_lunch: true, subscribe_dinner: true,
-  });
-
-  const [renewForm, setRenewForm] = useState({
-    amount: '', start_date: '', end_date: '',
   });
 
   useEffect(() => {
@@ -132,40 +106,6 @@ export default function AdminClientsPage() {
         const pkg = packages.find((p) => p.id === selectedPkgId);
         if (pkg) {
           next.sub_end = calculateEndDate(val, pkg.days);
-        }
-      }
-      return next;
-    });
-  }
-
-  function handleSelectRenewPackage(pkg: any) {
-    setSelectedRenewPkgId(pkg.id);
-    if (pkg.id === 'custom') {
-      setRenewForm((f) => ({
-        ...f,
-        amount: '',
-      }));
-    } else {
-      setRenewForm((f) => {
-        const next = {
-          ...f,
-          amount: String(pkg.price),
-        };
-        if (f.start_date) {
-          next.end_date = calculateEndDate(f.start_date, pkg.days);
-        }
-        return next;
-      });
-    }
-  }
-
-  function handleRenewStartDateChange(val: string) {
-    setRenewForm((f) => {
-      const next = { ...f, start_date: val };
-      if (selectedRenewPkgId !== 'custom') {
-        const pkg = packages.find((p) => p.id === selectedRenewPkgId);
-        if (pkg) {
-          next.end_date = calculateEndDate(val, pkg.days);
         }
       }
       return next;
@@ -241,135 +181,6 @@ export default function AdminClientsPage() {
     } finally { setSaving(false); }
   }
 
-  async function renewSubscription() {
-    if (!selectedClient) return;
-    setSaving(true); setError('');
-    try {
-      const res = await fetch(`/api/admin/clients/${selectedClient.id}/subscription`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(renewForm),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setShowRenewModal(false);
-        setRenewForm({ amount: '', start_date: '', end_date: '' });
-        setSelectedRenewPkgId('custom');
-        setSelectedClient(null);
-        loadClients();
-      } else {
-        setError(data.error ?? 'Failed to renew subscription');
-      }
-    } finally { setSaving(false); }
-  }
-
-  function startEdit(c: ClientRow) {
-    setSelectedClient(c);
-    setEditForm({
-      name: c.name,
-      phone_number: c.phone_number || '',
-      location: c.location || '',
-      password: '',
-      delivery_note: c.delivery_note || '',
-      sub_amount: c.sub_amount !== undefined ? String(c.sub_amount) : '',
-      start_date: c.start_date ? c.start_date.slice(0, 10) : '',
-      end_date: c.end_date ? c.end_date.slice(0, 10) : '',
-      subscribe_breakfast: c.subscribe_breakfast === true,
-      subscribe_lunch: c.subscribe_lunch !== false,
-      subscribe_dinner: c.subscribe_dinner !== false,
-    });
-    setShowEditModal(true);
-  }
-
-  async function editClient() {
-    if (!selectedClient) return;
-    setSaving(true); setError('');
-    try {
-      const res = await fetch(`/api/admin/clients/${selectedClient.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setShowEditModal(false);
-        setSelectedClient(null);
-        loadClients();
-      } else {
-        setError(data.error ?? 'Failed to update client');
-      }
-    } finally { setSaving(false); }
-  }
-
-  async function handleConfirmDeactivate() {
-    if (!confirmDeactivateId) return;
-    await fetch(`/api/admin/clients/${confirmDeactivateId}`, { method: 'DELETE' });
-    setConfirmDeactivateId(null);
-    loadClients();
-  }
-
-  function deleteClient(id: string) {
-    setConfirmDeactivateId(id);
-  }
-
-  async function submitBulkSkip() {
-    if (!selectedClient) return;
-    if (!bulkSkipForm.start_date || !bulkSkipForm.end_date) {
-      setError('Start date and End date are required');
-      return;
-    }
-    if (bulkSkipForm.start_date > bulkSkipForm.end_date) {
-      setError('Start date cannot be after End date');
-      return;
-    }
-
-    const mealTypes: string[] = [];
-    if (bulkSkipForm.subscribe_breakfast) mealTypes.push('Breakfast');
-    if (bulkSkipForm.subscribe_lunch) mealTypes.push('Lunch');
-    if (bulkSkipForm.subscribe_dinner) mealTypes.push('Dinner');
-
-    if (mealTypes.length === 0) {
-      setError('Please select at least one meal to skip');
-      return;
-    }
-
-    setSaving(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/admin/skip-admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          client_id: selectedClient.id,
-          start_date: bulkSkipForm.start_date,
-          end_date: bulkSkipForm.end_date,
-          meal_types: mealTypes,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setShowBulkSkipModal(false);
-        setBulkSkipForm({
-          start_date: '',
-          end_date: '',
-          subscribe_breakfast: false,
-          subscribe_lunch: true,
-          subscribe_dinner: false,
-        });
-        setSelectedClient(null);
-        loadClients();
-      } else {
-        setError(data.error ?? 'Failed to skip meals');
-      }
-    } catch {
-      setError('Server error');
-    } finally {
-      setSaving(false);
-    }
-  }
-
   const filtered = clients.filter((c) =>
     c.is_active && (
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -419,7 +230,9 @@ export default function AdminClientsPage() {
                 />
               </div>
             ))}
-          </div>          {/* Subscription */}
+          </div>
+
+          {/* Subscription */}
           <div style={{ background: 'var(--color-primary-light)', borderRadius: 14, padding: 14, marginTop: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: 10 }}>Subscription Details</div>
             
@@ -655,47 +468,23 @@ export default function AdminClientsPage() {
                         )}
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => {
-                              setSelectedClient(c);
-                              setRenewForm({ amount: '', start_date: '', end_date: '' });
-                              setSelectedRenewPkgId('custom');
-                              setShowRenewModal(true);
-                            }}
-                            style={{ padding: '6px 10px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
-                          >
-                            Renew
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedClient(c);
-                              setBulkSkipForm({
-                                start_date: todayStr,
-                                end_date: todayStr,
-                                subscribe_breakfast: c.subscribe_breakfast === true,
-                                subscribe_lunch: c.subscribe_lunch !== false,
-                                subscribe_dinner: c.subscribe_dinner !== false,
-                              });
-                              setShowBulkSkipModal(true);
-                            }}
-                            style={{ padding: '6px 10px', background: 'var(--color-accent-light)', color: 'var(--color-accent-dark)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
-                          >
-                            Skip
-                          </button>
-                          <button
-                            onClick={() => startEdit(c)}
-                            style={{ padding: '6px 10px', background: '#EFF6FF', color: '#3B82F6', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => deleteClient(c.id)}
-                            style={{ padding: '6px 8px', background: 'white', color: '#DC2626', border: '1px solid #FECACA', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'Outfit, sans-serif' }}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        <Link
+                          href={`/admin/clients/${c.id}`}
+                          style={{
+                            padding: '6px 12px',
+                            background: 'var(--color-primary-light)',
+                            color: 'var(--color-primary)',
+                            borderRadius: 8,
+                            fontWeight: 700,
+                            fontSize: 11,
+                            textDecoration: 'none',
+                            display: 'inline-block',
+                            fontFamily: 'Outfit, sans-serif',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          Manage Client →
+                        </Link>
                       </td>
                     </tr>
                   );
@@ -760,46 +549,25 @@ export default function AdminClientsPage() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 4, marginTop: 10 }}>
-                  <button
-                    onClick={() => {
-                      setSelectedClient(c);
-                      setRenewForm({ amount: '', start_date: '', end_date: '' });
-                      setSelectedRenewPkgId('custom');
-                      setShowRenewModal(true);
+                <div style={{ marginTop: 12 }}>
+                  <Link
+                    href={`/admin/clients/${c.id}`}
+                    style={{
+                      display: 'block',
+                      textAlign: 'center',
+                      padding: '8px 10px',
+                      background: 'var(--color-primary-light)',
+                      color: 'var(--color-primary)',
+                      borderRadius: 8,
+                      fontWeight: 700,
+                      fontSize: 11,
+                      textDecoration: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      transition: 'all 0.15s ease',
                     }}
-                    style={{ flex: 1.2, padding: '7px 4px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
                   >
-                    Renew
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedClient(c);
-                      setBulkSkipForm({
-                        start_date: todayStr,
-                        end_date: todayStr,
-                        subscribe_breakfast: c.subscribe_breakfast === true,
-                        subscribe_lunch: c.subscribe_lunch !== false,
-                        subscribe_dinner: c.subscribe_dinner !== false,
-                      });
-                      setShowBulkSkipModal(true);
-                    }}
-                    style={{ flex: 1, padding: '7px 4px', background: 'var(--color-accent-light)', color: 'var(--color-accent-dark)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                  >
-                    Skip
-                  </button>
-                  <button
-                    onClick={() => startEdit(c)}
-                    style={{ flex: 1, padding: '7px 4px', background: '#EFF6FF', color: '#3B82F6', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteClient(c.id)}
-                    style={{ padding: '7px 8px', background: 'white', color: '#DC2626', border: '1px solid #FECACA', borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
-                  >
-                    Delete
-                  </button>
+                    Manage Client →
+                  </Link>
                 </div>
               </div>
             );
@@ -812,261 +580,11 @@ export default function AdminClientsPage() {
           No clients found.
         </div>
       )}
-
-      {/* Bulk Skip Modal */}
-      <Modal open={showBulkSkipModal} onClose={() => { setShowBulkSkipModal(false); setError(''); }} maxWidth={480}>
-        <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', marginBottom: 4 }}>Skip Meals for Client</h3>
-        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>For {selectedClient?.name}</p>
-        {error && <div style={errorStyle}>{error}</div>}
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-          <div>
-            <label style={fieldLabel}>Start Date</label>
-            <input
-              type="date"
-              value={bulkSkipForm.start_date}
-              onChange={(e) => setBulkSkipForm((f) => ({ ...f, start_date: e.target.value }))}
-              style={inputSm}
-            />
-          </div>
-          <div>
-            <label style={fieldLabel}>End Date</label>
-            <input
-              type="date"
-              value={bulkSkipForm.end_date}
-              onChange={(e) => setBulkSkipForm((f) => ({ ...f, end_date: e.target.value }))}
-              style={inputSm}
-            />
-          </div>
-        </div>
-
-        {bulkSkipForm.start_date && bulkSkipForm.end_date && (
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', marginBottom: 12 }}>
-            {countServiceDays(new Date(bulkSkipForm.start_date), new Date(bulkSkipForm.end_date))} service days will be skipped (excluding Sundays)
-          </div>
-        )}
-
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-light)', textTransform: 'uppercase', marginBottom: 10 }}>Select Meals to Skip</div>
-        <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={bulkSkipForm.subscribe_breakfast}
-              onChange={(e) => setBulkSkipForm((f) => ({ ...f, subscribe_breakfast: e.target.checked }))}
-            />
-            Breakfast 🍳
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={bulkSkipForm.subscribe_lunch}
-              onChange={(e) => setBulkSkipForm((f) => ({ ...f, subscribe_lunch: e.target.checked }))}
-            />
-            Lunch 🍱
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={bulkSkipForm.subscribe_dinner}
-              onChange={(e) => setBulkSkipForm((f) => ({ ...f, subscribe_dinner: e.target.checked }))}
-            />
-            Dinner 🌙
-          </label>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="ghost" fullWidth onClick={() => setShowBulkSkipModal(false)}>Cancel</Button>
-          <Button loading={saving} fullWidth onClick={submitBulkSkip}>Save Skips</Button>
-        </div>
-      </Modal>
-
-      {/* Renew Modal */}
-      <Modal open={showRenewModal} onClose={() => { setShowRenewModal(false); setError(''); }} maxWidth={480}>
-        <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', marginBottom: 4 }}>Renew Subscription</h3>
-        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>For {selectedClient?.name}</p>
-        {error && <div style={errorStyle}>{error}</div>}
-        {/* Package Selector for Renew */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={fieldLabel}>Select Predefined Package</label>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
-            <button
-              type="button"
-              onClick={() => handleSelectRenewPackage({ id: 'custom', name: 'Custom Plan', days: '', price: '' })}
-              style={{
-                padding: '8px 12px', background: selectedRenewPkgId === 'custom' ? 'var(--color-primary)' : 'white',
-                color: selectedRenewPkgId === 'custom' ? 'white' : 'var(--color-text-muted)',
-                border: `1.5px solid ${selectedRenewPkgId === 'custom' ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                fontFamily: 'Outfit, sans-serif',
-              }}
-            >
-              ⚙️ Custom Plan
-            </button>
-            {packages.map((pkg) => {
-              const isSel = selectedRenewPkgId === pkg.id;
-              return (
-                <button
-                  key={pkg.id}
-                  type="button"
-                  onClick={() => handleSelectRenewPackage(pkg)}
-                  style={{
-                    padding: '8px 12px', background: isSel ? 'var(--color-primary)' : 'white',
-                    color: isSel ? 'white' : 'var(--color-text-muted)',
-                    border: `1.5px solid ${isSel ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                    borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                    fontFamily: 'Outfit, sans-serif',
-                  }}
-                >
-                  {pkg.name} ({pkg.days}d • ₹{pkg.price})
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
-          <div>
-            <label style={fieldLabel}>Amount (₹)</label>
-            <input
-              type="number"
-              disabled={selectedRenewPkgId !== 'custom'}
-              value={renewForm.amount}
-              onChange={(e) => setRenewForm((f) => ({ ...f, amount: e.target.value }))}
-              style={inputSm}
-            />
-          </div>
-          <div>
-            <label style={fieldLabel}>Start Date</label>
-            <input
-              type="date"
-              value={renewForm.start_date}
-              onChange={(e) => handleRenewStartDateChange(e.target.value)}
-              style={inputSm}
-            />
-          </div>
-          <div>
-            <label style={fieldLabel}>End Date</label>
-            <input
-              type="date"
-              disabled={selectedRenewPkgId !== 'custom'}
-              value={renewForm.end_date}
-              onChange={(e) => setRenewForm((f) => ({ ...f, end_date: e.target.value }))}
-              style={inputSm}
-            />
-          </div>
-        </div>
-        {renewForm.start_date && renewForm.end_date && (
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', marginBottom: 12 }}>
-            {countServiceDays(new Date(renewForm.start_date), new Date(renewForm.end_date))} service days
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="ghost" fullWidth onClick={() => setShowRenewModal(false)}>Cancel</Button>
-          <Button loading={saving} fullWidth onClick={renewSubscription}>Renew</Button>
-        </div>
-      </Modal>
-
-      {/* Edit Client Modal */}
-      <Modal open={showEditModal} onClose={() => { setShowEditModal(false); setError(''); }} maxWidth={560}>
-        <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--color-text)', marginBottom: 4 }}>Edit Client Details</h3>
-        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>For {selectedClient?.name}</p>
-        {error && <div style={errorStyle}>{error}</div>}
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-          {[
-            { label: 'Full Name *', key: 'name', type: 'text' },
-            { label: 'Phone Number *', key: 'phone_number', type: 'text' },
-            { label: 'Location / Area', key: 'location', type: 'text' },
-            { label: 'Password (leave blank to keep current)', key: 'password', type: 'password' },
-            { label: 'Delivery Note', key: 'delivery_note', type: 'text' },
-          ].map(({ label, key, type }) => (
-            <div key={key} style={key === 'delivery_note' ? { gridColumn: 'span 2' } : undefined}>
-              <label style={fieldLabel}>{label}</label>
-              <input
-                type={type}
-                value={(editForm as any)[key]}
-                onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
-                style={inputSm}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Subscription section inside client edit */}
-        <div style={{ background: 'var(--color-primary-light)', borderRadius: 14, padding: 14, marginTop: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: 10 }}>Subscription Details</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            {[
-              { label: 'Amount (₹)', key: 'sub_amount', type: 'number', placeholder: 'e.g. 2500' },
-              { label: 'Start Date', key: 'start_date', type: 'date' },
-              { label: 'End Date', key: 'end_date', type: 'date' },
-            ].map(({ label, key, type, placeholder }) => (
-              <div key={key}>
-                <label style={fieldLabel}>{label}</label>
-                <input
-                  type={type}
-                  placeholder={placeholder}
-                  value={(editForm as any)[key]}
-                  onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
-                  style={inputSm}
-                />
-              </div>
-            ))}
-          </div>
-          {editForm.start_date && editForm.end_date && (
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', marginTop: 8 }}>
-              {countServiceDays(new Date(editForm.start_date), new Date(editForm.end_date))} service days
-            </div>
-          )}
-
-          {/* Checkboxes for meal subscription in edit */}
-          <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={editForm.subscribe_breakfast}
-                onChange={(e) => setEditForm((f) => ({ ...f, subscribe_breakfast: e.target.checked }))}
-              />
-              Subscribe Breakfast 🍳
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={editForm.subscribe_lunch}
-                onChange={(e) => setEditForm((f) => ({ ...f, subscribe_lunch: e.target.checked }))}
-              />
-              Subscribe Lunch 🍱
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--color-text)', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={editForm.subscribe_dinner}
-                onChange={(e) => setEditForm((f) => ({ ...f, subscribe_dinner: e.target.checked }))}
-              />
-              Subscribe Dinner 🌙
-            </label>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <Button variant="ghost" fullWidth onClick={() => setShowEditModal(false)}>Cancel</Button>
-          <Button loading={saving} fullWidth onClick={editClient}>Save Changes</Button>
-        </div>
-      </Modal>
-
-      <CustomConfirmModal
-        open={confirmDeactivateId !== null}
-        onClose={() => setConfirmDeactivateId(null)}
-        onConfirm={handleConfirmDeactivate}
-        title="Deactivate Client"
-        message="Are you sure you want to deactivate this client? They will no longer appear on active delivery checklists."
-        confirmText="Deactivate"
-        variant="danger"
-      />
     </div>
   );
 }
 
+// Styling Constants
 const fieldLabel: React.CSSProperties = {
   display: 'block', fontSize: 10, fontWeight: 700,
   color: 'var(--color-text-light)', textTransform: 'uppercase',
