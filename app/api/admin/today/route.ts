@@ -26,56 +26,75 @@ export async function GET(req: NextRequest) {
         [date]
       );
 
-      // Create set of active client_id + meal_type pairs
-      const activePairs: { client_id: string; meal_type: string }[] = [];
+      // Fetch all approved skips for this date
+      const skipsRes = await db.query(
+        `SELECT id, client_id, meal_type FROM skip_requests
+         WHERE date = $1 AND status = 'approved'`,
+        [date]
+      );
+      const approvedSkips = new Map<string, string>(); // key: `${client_id}-${meal_type}`, value: skip_id
+      for (const row of skipsRes.rows) {
+        approvedSkips.set(`${row.client_id}-${row.meal_type}`, row.id);
+      }
+
+      // 1. Insert missing active deliveries in batch
+      const insertValues: any[] = [];
+      let placeholderIdx = 1;
+      const insertParts: string[] = [];
+
       for (const c of clients.rows) {
-        if (c.subscribe_breakfast === true) {
-          activePairs.push({ client_id: c.id, meal_type: 'Breakfast' });
-        }
-        if (c.subscribe_lunch !== false) {
-          activePairs.push({ client_id: c.id, meal_type: 'Lunch' });
-        }
-        if (c.subscribe_dinner !== false) {
-          activePairs.push({ client_id: c.id, meal_type: 'Dinner' });
+        const meals = [];
+        if (c.subscribe_breakfast === true) meals.push('Breakfast');
+        if (c.subscribe_lunch !== false) meals.push('Lunch');
+        if (c.subscribe_dinner !== false) meals.push('Dinner');
+
+        for (const meal of meals) {
+          const key = `${c.id}-${meal}`;
+          const skipId = approvedSkips.get(key) || null;
+          const status = skipId ? 'skipped' : 'pending';
+          const deliveryId = `del_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+
+          insertParts.push(`($${placeholderIdx++}, $${placeholderIdx++}, $${placeholderIdx++}, $${placeholderIdx++}, $${placeholderIdx++}, $${placeholderIdx++})`);
+          insertValues.push(deliveryId, c.id, date, meal, status, skipId);
         }
       }
 
-      // 1. Insert missing active deliveries
-      for (const pair of activePairs) {
-        // Check for approved skip
-        const skip = await db.query(
-          `SELECT id FROM skip_requests
-           WHERE client_id = $1 AND date = $2 AND meal_type = $3 AND status = 'approved'`,
-          [pair.client_id, date, pair.meal_type]
-        );
-
-        const status = skip.rows.length > 0 ? 'skipped' : 'pending';
-        const skipId = skip.rows[0]?.id ?? null;
-        const id = `del_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
-
-        await db.query(
-          `INSERT INTO daily_deliveries
-             (id, client_id, date, meal_type, status, skip_request_id)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (client_id, date, meal_type) DO NOTHING`,
-          [id, pair.client_id, date, pair.meal_type, status, skipId]
-        );
+      if (insertParts.length > 0) {
+        const insertQuery = `
+          INSERT INTO daily_deliveries (id, client_id, date, meal_type, status, skip_request_id)
+          VALUES ${insertParts.join(', ')}
+          ON CONFLICT (client_id, date, meal_type) DO NOTHING
+        `;
+        await db.query(insertQuery, insertValues);
       }
 
-      // 2. Remove invalid deliveries (if they are pending, assigned, or skipped, but no longer active/subscribed)
+      // 2. Remove invalid deliveries in batch
+      const activeKeys = new Set<string>();
+      for (const c of clients.rows) {
+        if (c.subscribe_breakfast === true) activeKeys.add(`${c.id}-Breakfast`);
+        if (c.subscribe_lunch !== false) activeKeys.add(`${c.id}-Lunch`);
+        if (c.subscribe_dinner !== false) activeKeys.add(`${c.id}-Dinner`);
+      }
+
       const existing = await db.query(
         `SELECT id, client_id, meal_type FROM daily_deliveries
          WHERE date = $1 AND status IN ('pending', 'assigned', 'skipped')`,
         [date]
       );
 
+      const idsToDelete: string[] = [];
       for (const row of existing.rows) {
-        const stillActive = activePairs.some(
-          (p) => p.client_id === row.client_id && p.meal_type === row.meal_type
-        );
-        if (!stillActive) {
-          await db.query(`DELETE FROM daily_deliveries WHERE id = $1`, [row.id]);
+        const key = `${row.client_id}-${row.meal_type}`;
+        if (!activeKeys.has(key)) {
+          idsToDelete.push(row.id);
         }
+      }
+
+      if (idsToDelete.length > 0) {
+        await db.query(
+          `DELETE FROM daily_deliveries WHERE id = ANY($1)`,
+          [idsToDelete]
+        );
       }
 
       await db.query('COMMIT');

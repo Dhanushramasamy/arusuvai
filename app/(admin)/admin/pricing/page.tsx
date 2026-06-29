@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import { swrFetch, invalidateCache } from '@/lib/clientCache';
 
 interface Fare { location: string; charge: number; }
 
@@ -14,15 +15,19 @@ export default function AdminPricingPage() {
   const [newCharge, setNewCharge] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const load = async () => {
+  const load = (bypassCache = false) => {
     setLoading(true);
-    const res = await fetch('/api/admin/pricing');
-    const data = await res.json();
-    setFares(data.data ?? []);
-    setLoading(false);
+    const unsub = swrFetch('/api/admin/pricing', (json) => {
+      setFares(json.data ?? []);
+      setLoading(false);
+    }, { bypassCache });
+    return unsub;
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const unsub = load();
+    return unsub;
+  }, []);
 
   async function save(location: string, charge: string) {
     setSaving(true);
@@ -31,9 +36,10 @@ export default function AdminPricingPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ location, charge: parseFloat(charge) }),
     });
+    invalidateCache('/api/admin/pricing');
     setEditing(null);
     setSaving(false);
-    load();
+    load(true);
   }
 
   async function addNew() {
@@ -44,9 +50,10 @@ export default function AdminPricingPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ location: newLoc.trim(), charge: parseFloat(newCharge) }),
     });
+    invalidateCache('/api/admin/pricing');
     setNewLoc(''); setNewCharge('');
     setSaving(false);
-    load();
+    load(true);
   }
 
   return (

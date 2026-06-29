@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import CustomDropdown from '@/components/ui/CustomDropdown';
 import CustomConfirmModal from '@/components/ui/CustomConfirmModal';
 import type { DailyDelivery } from '@/types';
+import { swrFetch, invalidateCache } from '@/lib/clientCache';
 
 function dateStr(d: Date) {
   return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -33,24 +34,27 @@ export default function AdminTodayPage() {
   const [generating, setGenerating] = useState(false);
   const [confirmSkipDelivery, setConfirmSkipDelivery] = useState<DailyDelivery | null>(null);
 
-  const loadDeliveries = useCallback(async () => {
+  const loadDeliveries = useCallback((bypassCache = false) => {
     setLoading(true);
     setSelected(new Set());
-    const res = await fetch(`/api/admin/today?date=${date}`);
-    const data = await res.json();
-    setDeliveries(data.data ?? []);
-    setLoading(false);
+    const unsub = swrFetch(`/api/admin/today?date=${date}`, (json) => {
+      setDeliveries(json.data ?? []);
+      setLoading(false);
+    }, { bypassCache });
+    return unsub;
   }, [date]);
 
-  useEffect(() => { loadDeliveries(); }, [loadDeliveries]);
+  useEffect(() => {
+    const unsub = loadDeliveries();
+    return unsub;
+  }, [loadDeliveries]);
 
   useEffect(() => {
-    fetch('/api/admin/delivery-persons')
-      .then((r) => r.json())
-      .then((d) => {
-        setDeliveryPersons(d.data ?? []);
-        if (d.data?.length) setAssignPerson(d.data[0].id);
-      });
+    const unsub = swrFetch('/api/admin/delivery-persons', (json) => {
+      setDeliveryPersons(json.data ?? []);
+      if (json.data?.length) setAssignPerson(json.data[0].id);
+    });
+    return unsub;
   }, []);
 
   async function generateToday() {
@@ -60,7 +64,8 @@ export default function AdminTodayPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date }),
     });
-    await loadDeliveries();
+    invalidateCache('/api/admin/today');
+    loadDeliveries(true);
     setGenerating(false);
   }
 
@@ -70,7 +75,9 @@ export default function AdminTodayPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'approved' }),
     });
-    loadDeliveries();
+    invalidateCache('/api/admin/today');
+    invalidateCache('/api/admin/clients');
+    loadDeliveries(true);
   }
 
   async function rejectSkip(skipId: string) {
@@ -79,7 +86,8 @@ export default function AdminTodayPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'rejected' }),
     });
-    loadDeliveries();
+    invalidateCache('/api/admin/today');
+    loadDeliveries(true);
   }
 
   async function adminSkip(delivery: DailyDelivery) {
@@ -88,7 +96,9 @@ export default function AdminTodayPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: delivery.client_id, date: delivery.date, meal_type: delivery.meal_type }),
     });
-    loadDeliveries();
+    invalidateCache('/api/admin/today');
+    invalidateCache('/api/admin/clients');
+    loadDeliveries(true);
   }
 
   async function restoreDelivery(delivery: DailyDelivery) {
@@ -97,7 +107,9 @@ export default function AdminTodayPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: delivery.client_id, date: delivery.date, meal_type: delivery.meal_type }),
     });
-    loadDeliveries();
+    invalidateCache('/api/admin/today');
+    invalidateCache('/api/admin/clients');
+    loadDeliveries(true);
   }
 
   async function bulkAssign() {
@@ -108,7 +120,9 @@ export default function AdminTodayPage() {
       body: JSON.stringify({ delivery_ids: Array.from(selected), delivery_person_id: assignPerson }),
     });
     setShowAssignModal(false);
-    loadDeliveries();
+    invalidateCache('/api/admin/today');
+    invalidateCache('/api/admin/delivery-persons');
+    loadDeliveries(true);
   }
 
   const filtered = deliveries.filter((d) => d.meal_type === mealTab);

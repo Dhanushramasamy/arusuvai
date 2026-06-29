@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import { useTranslation } from '@/i18n';
 import Badge from '@/components/ui/Badge';
 import CustomConfirmModal from '@/components/ui/CustomConfirmModal';
+import { swrFetch, invalidateCache } from '@/lib/clientCache';
 
 export default function SubscriptionPackagesPage() {
   const { t } = useTranslation();
@@ -25,21 +26,18 @@ export default function SubscriptionPackagesPage() {
     price: '',
   });
 
-  const loadPackages = async () => {
+  const loadPackages = (bypassCache = false) => {
     setLoading(true);
-    try {
-      const res = await fetch('/api/admin/packages');
-      const data = await res.json();
-      setPackages(data.data ?? []);
-    } catch {
-      setError('Failed to load packages');
-    } finally {
+    const unsub = swrFetch('/api/admin/packages', (json) => {
+      setPackages(json.data ?? []);
       setLoading(false);
-    }
+    }, { bypassCache });
+    return unsub;
   };
 
   useEffect(() => {
-    loadPackages();
+    const unsub = loadPackages();
+    return unsub;
   }, []);
 
   const startEdit = (pkg: { id: string; name: string; days: number; diet_type: string; meal_type: string; price: number | string }) => {
@@ -112,8 +110,9 @@ export default function SubscriptionPackagesPage() {
           subscribe_dinner: false,
           price: '',
         });
+        invalidateCache('/api/admin/packages');
         setEditingId(null);
-        loadPackages();
+        loadPackages(true);
       } else {
         setError(data.error ?? `Failed to ${editingId ? 'update' : 'create'} package`);
       }
@@ -131,7 +130,8 @@ export default function SubscriptionPackagesPage() {
       const res = await fetch(`/api/admin/packages/${confirmDeleteId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        loadPackages();
+        invalidateCache('/api/admin/packages');
+        loadPackages(true);
       } else {
         setError(data.error ?? 'Failed to delete package');
       }

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import CustomConfirmModal from '@/components/ui/CustomConfirmModal';
+import { swrFetch, invalidateCache } from '@/lib/clientCache';
 
 interface DeliveryPerson {
   id: string; name: string; phone_number: string;
@@ -22,15 +23,19 @@ export default function AdminDeliveryPersonsPage() {
   const [editForm, setEditForm] = useState({ name: '', phone_number: '', password: '' });
   const [confirmDeactivateId, setConfirmDeactivateId] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = (bypassCache = false) => {
     setLoading(true);
-    const res = await fetch('/api/admin/delivery-persons');
-    const data = await res.json();
-    setPersons(data.data ?? []);
-    setLoading(false);
+    const unsub = swrFetch('/api/admin/delivery-persons', (json) => {
+      setPersons(json.data ?? []);
+      setLoading(false);
+    }, { bypassCache });
+    return unsub;
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const unsub = load();
+    return unsub;
+  }, []);
 
   async function add() {
     setSaving(true); setError('');
@@ -42,9 +47,10 @@ export default function AdminDeliveryPersonsPage() {
       });
       const data = await res.json();
       if (data.success) {
+        invalidateCache('/api/admin/delivery-persons');
         setShowForm(false);
         setForm({ name: '', phone_number: '', password: '' });
-        load();
+        load(true);
       } else {
         setError(data.error ?? 'Failed to add');
       }
@@ -54,8 +60,9 @@ export default function AdminDeliveryPersonsPage() {
   async function handleConfirmDeactivate() {
     if (!confirmDeactivateId) return;
     await fetch(`/api/admin/delivery-persons/${confirmDeactivateId}`, { method: 'DELETE' });
+    invalidateCache('/api/admin/delivery-persons');
     setConfirmDeactivateId(null);
-    load();
+    load(true);
   }
 
   function remove(id: string) {
@@ -83,9 +90,10 @@ export default function AdminDeliveryPersonsPage() {
       });
       const data = await res.json();
       if (data.success) {
+        invalidateCache('/api/admin/delivery-persons');
         setShowEditModal(false);
         setSelectedPerson(null);
-        load();
+        load(true);
       } else {
         setError(data.error ?? 'Failed to update');
       }

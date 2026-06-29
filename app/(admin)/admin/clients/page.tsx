@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { countServiceDays } from '@/lib/dateUtils';
+import { swrFetch, invalidateCache } from '@/lib/clientCache';
 
 function calculateEndDate(startDateStr: string, serviceDays: number): string {
   if (serviceDays <= 0) return startDateStr;
@@ -66,9 +67,10 @@ export default function AdminClientsPage() {
   });
 
   useEffect(() => {
-    fetch('/api/admin/packages')
-      .then((r) => r.json())
-      .then((d) => setPackages(d.data ?? []));
+    const unsub = swrFetch('/api/admin/packages', (json) => {
+      setPackages(json.data ?? []);
+    });
+    return unsub;
   }, []);
 
   function handleSelectPackage(pkg: any) {
@@ -112,15 +114,19 @@ export default function AdminClientsPage() {
     });
   }
 
-  const loadClients = async () => {
+  const loadClients = (bypassCache = false) => {
     setLoading(true);
-    const res = await fetch('/api/admin/clients');
-    const data = await res.json();
-    setClients(data.data ?? []);
-    setLoading(false);
+    const unsub = swrFetch('/api/admin/clients', (json) => {
+      setClients(json.data ?? []);
+      setLoading(false);
+    }, { bypassCache });
+    return unsub;
   };
 
-  useEffect(() => { loadClients(); }, []);
+  useEffect(() => {
+    const unsub = loadClients();
+    return unsub;
+  }, []);
 
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
@@ -173,8 +179,9 @@ export default function AdminClientsPage() {
           subscribe_breakfast: false,
           subscribe_lunch: true, subscribe_dinner: true
         });
+        invalidateCache('/api/admin/clients');
         setSelectedPkgId('custom');
-        loadClients();
+        loadClients(true);
       } else {
         setError(data.error ?? 'Failed to add client');
       }

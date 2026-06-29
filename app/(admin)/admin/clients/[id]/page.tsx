@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import CustomConfirmModal from '@/components/ui/CustomConfirmModal';
 import { countServiceDays } from '@/lib/dateUtils';
+import { swrFetch, invalidateCache } from '@/lib/clientCache';
 
 interface ClientDetailProps {
   params: Promise<{ id: string }>;
@@ -65,28 +66,28 @@ export default function ClientDetailPage({ params }: ClientDetailProps) {
     subscribe_breakfast: false, subscribe_lunch: true, subscribe_dinner: false,
   });
 
-  const loadData = async () => {
+  const loadData = (bypassCache = false) => {
     setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/clients/${id}`);
-      const json = await res.json();
+    const unsub = swrFetch(`/api/admin/clients/${id}`, (json) => {
       if (json.success) {
         setData(json.data);
       } else {
         setError(json.error ?? 'Failed to load client');
       }
-    } catch {
-      setError('Server error loading client');
-    } finally {
       setLoading(false);
-    }
+    }, { bypassCache });
+    return unsub;
   };
 
   useEffect(() => {
-    loadData();
-    fetch('/api/admin/packages')
-      .then((r) => r.json())
-      .then((d) => setPackages(d.data ?? []));
+    const unsubData = loadData();
+    const unsubPkgs = swrFetch('/api/admin/packages', (json) => {
+      setPackages(json.data ?? []);
+    });
+    return () => {
+      unsubData();
+      unsubPkgs();
+    };
   }, [id]);
 
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -190,8 +191,10 @@ export default function ClientDetailPage({ params }: ClientDetailProps) {
       });
       const json = await res.json();
       if (json.success) {
+        invalidateCache('/api/admin/clients');
+        invalidateCache(`/api/admin/clients/${id}`);
         setShowRenewModal(false);
-        loadData();
+        loadData(true);
       } else {
         setError(json.error ?? 'Failed to renew subscription');
       }
@@ -208,8 +211,10 @@ export default function ClientDetailPage({ params }: ClientDetailProps) {
       });
       const json = await res.json();
       if (json.success) {
+        invalidateCache('/api/admin/clients');
+        invalidateCache(`/api/admin/clients/${id}`);
         setShowEditModal(false);
-        loadData();
+        loadData(true);
       } else {
         setError(json.error ?? 'Failed to update details');
       }
@@ -250,8 +255,11 @@ export default function ClientDetailPage({ params }: ClientDetailProps) {
       });
       const json = await res.json();
       if (json.success) {
+        invalidateCache('/api/admin/clients');
+        invalidateCache(`/api/admin/clients/${id}`);
+        invalidateCache('/api/admin/today');
         setShowSkipModal(false);
-        loadData();
+        loadData(true);
       } else {
         setError(json.error ?? 'Failed to register skips');
       }
@@ -264,6 +272,8 @@ export default function ClientDetailPage({ params }: ClientDetailProps) {
       const res = await fetch(`/api/admin/clients/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
+        invalidateCache('/api/admin/clients');
+        invalidateCache(`/api/admin/clients/${id}`);
         setShowDeleteConfirm(false);
         router.push('/admin/clients');
       } else {
