@@ -123,14 +123,13 @@ export default async function NonVegMenuPage() {
 
         @media (max-width: 860px) {
           .nvp-hero { grid-template-columns: 1fr; min-height: auto; }
-          .nvp-hero-left, .nvp-hero-right { order: unset; }
-          .nvp-hero-right { min-height: 250px; max-height: 380px; order: 1; }
-          .nvp-hero-left { padding: 48px 24px 36px; order: 2; }
+          .nvp-hero-left { padding: 48px 24px 36px; order: 1; }
+          .nvp-hero-right { min-height: 240px; max-height: 320px; order: 2; aspect-ratio: 16/9; }
           .nvp-section, .nvp-cta { padding: 52px 24px; }
           .nvp-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
-          .nvp-hero-right { min-height: 200px; }
+          .nvp-hero-right { min-height: 180px; max-height: 240px; }
           .nvp-h1 { font-size: 32px; }
           .nvp-pills { display: none; }
         }

@@ -405,8 +405,8 @@ export default async function LandingPage() {
 
         @media (max-width: 900px) {
           .hero { grid-template-columns: 1fr; min-height: auto; }
-          .hero-left { padding: 52px 24px 40px; }
-          .hero-right { min-height: 260px; max-height: 400px; order: -1; }
+          .hero-left { padding: 48px 24px 32px; order: 1; }
+          .hero-right { min-height: 240px; max-height: 320px; order: 2; aspect-ratio: 16/9; }
           .hero-h1 { font-size: clamp(36px, 9vw, 56px); }
           .hero-trust { gap: 20px; }
           .about-grid { grid-template-columns: 1fr; gap: 36px; }
@@ -449,7 +449,7 @@ export default async function LandingPage() {
 
         @media (max-width: 480px) {
           .hero-left { padding: 36px 18px 32px; }
-          .hero-right { min-height: 200px; }
+          .hero-right { min-height: 180px; max-height: 240px; }
           .hero-actions { flex-direction: column; }
           .btn-solid-green, .btn-link-green { width: 100%; justify-content: center; }
           .trust-sep { display: none; }

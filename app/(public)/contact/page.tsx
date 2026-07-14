@@ -181,6 +181,7 @@ export default function ContactPage() {
           width: 100%; justify-content: center;
         }
         .cp-wa-btn:hover { background: #EBF5EB; transform: translateY(-1px); }
+        .cp-wa-wrapper { padding: 72px 80px 0; }
 
         /* FAQ */
         .cp-faq { background: #F7F4EE; border-top: 1px solid #E8E2D5; padding: 72px 80px; }
@@ -217,9 +218,10 @@ export default function ContactPage() {
           .cp-hero { padding: 52px 24px 48px; }
           .cp-info { padding: 52px 24px; }
           .cp-info-grid { grid-template-columns: 1fr; }
+          .cp-wa-wrapper { padding: 52px 0 0; }
           .cp-wa { margin: 0 24px 52px; grid-template-columns: 1fr; }
-          .cp-wa-left { padding: 40px 28px; }
-          .cp-wa-right { padding: 36px 28px; }
+          .cp-wa-left { padding: 40px 24px; }
+          .cp-wa-right { padding: 36px 24px; }
           .cp-faq { padding: 52px 24px; }
         }
       `}</style>
@@ -272,7 +274,7 @@ export default function ContactPage() {
         <div className="cp-divider" />
 
         {/* WhatsApp banner */}
-        <div style={{ padding: '72px 80px 0' }}>
+        <div className="cp-wa-wrapper">
           <div className="cp-wa">
             <div className="cp-wa-left">
               <div className="cp-sec-kicker">Quickest Way</div>

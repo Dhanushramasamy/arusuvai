@@ -122,13 +122,13 @@ export default async function VegMenuPage() {
 
         @media (max-width: 860px) {
           .vp-hero { grid-template-columns: 1fr; min-height: auto; }
-          .vp-hero-left { padding: 48px 24px 36px; order: 2; }
-          .vp-hero-right { min-height: 250px; max-height: 380px; order: 1; }
+          .vp-hero-left { padding: 48px 24px 36px; order: 1; }
+          .vp-hero-right { min-height: 240px; max-height: 320px; order: 2; aspect-ratio: 16/9; }
           .vp-section, .vp-cta { padding: 52px 24px; }
           .vp-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
-          .vp-hero-right { min-height: 200px; }
+          .vp-hero-right { min-height: 180px; max-height: 240px; }
           .vp-h1 { font-size: 32px; }
           .vp-pills { display: none; }
         }

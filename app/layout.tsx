@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { I18nProvider } from '@/i18n';
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+
 
 export const metadata: Metadata = {
   title: 'Arusuvai — The Home Kitchen',
@@ -30,7 +30,7 @@ export default function RootLayout({
       <body>
         <I18nProvider>
           {children}
-          <LanguageSwitcher />
+
         </I18nProvider>
       </body>
     </html>

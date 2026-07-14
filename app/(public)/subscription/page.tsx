@@ -160,14 +160,14 @@ export default async function SubscriptionPage() {
 
         @media (max-width: 860px) {
           .sp-hero { grid-template-columns: 1fr; min-height: auto; }
-          .sp-hero-left { padding: 48px 24px 36px; order: 2; }
-          .sp-hero-right { min-height: 250px; max-height: 380px; order: 1; }
+          .sp-hero-left { padding: 48px 24px 36px; order: 1; }
+          .sp-hero-right { min-height: 240px; max-height: 320px; order: 2; aspect-ratio: 16/9; }
           .sp-section, .sp-cta { padding: 52px 24px; }
           .plans-grid { grid-template-columns: 1fr; }
           .benefits-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
-          .sp-hero-right { min-height: 200px; }
+          .sp-hero-right { min-height: 180px; max-height: 240px; }
           .sp-h1 { font-size: 32px; }
         }
       `}</style>
