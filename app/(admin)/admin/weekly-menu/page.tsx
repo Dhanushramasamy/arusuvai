@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Button from '@/components/ui/Button';
 import { swrFetch, invalidateCache } from '@/lib/clientCache';
 
-type MenuType = 'veg' | 'non_veg';
+type MenuType = 'veg' | 'non_veg' | 'premium_non_veg';
 type MealType = 'Lunch' | 'Dinner';
 
 interface MenuRow {
@@ -199,14 +199,17 @@ export default function AdminWeeklyMenuPage() {
       </div>
 
       {/* Type + Meal tabs */}
-      <div style={{ background: 'white', border: '1.5px solid var(--color-border)', borderRadius: 14, padding: 6, marginBottom: 16, display: 'flex', gap: 4 }}>
+      <div style={{ background: 'white', border: '1.5px solid var(--color-border)', borderRadius: 14, padding: 6, marginBottom: 16, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         <button style={tabStyle(menuType === 'veg', '#2C5E2E')} onClick={() => setMenuType('veg')}>
           🌿 Veg
         </button>
         <button style={tabStyle(menuType === 'non_veg', '#C05621')} onClick={() => setMenuType('non_veg')}>
           🍗 Non-Veg
         </button>
-        <div style={{ flex: 1 }} />
+        <button style={tabStyle(menuType === 'premium_non_veg', '#9A3412')} onClick={() => setMenuType('premium_non_veg')}>
+          👑 Premium Non-Veg
+        </button>
+        <div style={{ flex: 1, minWidth: 20 }} />
         <button style={tabStyle(mealType === 'Lunch', '#2C5E2E')} onClick={() => setMealType('Lunch')}>
           ☀️ Lunch
         </button>
@@ -245,7 +248,7 @@ export default function AdminWeeklyMenuPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    background: menuType === 'veg' ? '#2C5E2E' : '#C05621',
+                    background: menuType === 'veg' ? '#2C5E2E' : (menuType === 'premium_non_veg' ? '#9A3412' : '#C05621'),
                     color: 'white',
                     padding: '4px 12px',
                     borderRadius: 8,
@@ -254,7 +257,7 @@ export default function AdminWeeklyMenuPage() {
                     {dayIcons[day]} {day}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--color-text-light)', fontWeight: 600 }}>
-                    {mealType} • {menuType === 'veg' ? 'Vegetarian' : 'Non-Vegetarian'}
+                    {mealType} • {menuType === 'veg' ? 'Vegetarian' : (menuType === 'premium_non_veg' ? 'Premium Non-Veg' : 'Non-Vegetarian')}
                   </div>
                 </div>
 
@@ -303,7 +306,7 @@ export default function AdminWeeklyMenuPage() {
                     {currentVal.split(',').map((s) => s.trim()).filter(Boolean).map((item, i) => (
                       <span key={i} style={{
                         background: menuType === 'veg' ? '#EBF5EB' : '#FEF3DC',
-                        color: menuType === 'veg' ? '#2C5E2E' : '#C05621',
+                        color: menuType === 'veg' ? '#2C5E2E' : (menuType === 'premium_non_veg' ? '#9A3412' : '#C05621'),
                         padding: '3px 10px',
                         borderRadius: 20,
                         fontSize: 11, fontWeight: 600,

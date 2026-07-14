@@ -15,8 +15,6 @@ export default function PublicNavbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled]     = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [menuOpen, setMenuOpen]     = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
 
   // Scroll shadow
@@ -29,17 +27,12 @@ export default function PublicNavbar() {
   // Close everything on route change
   useEffect(() => {
     setMobileOpen(false);
-    setMenuOpen(false);
   }, [pathname]);
 
-  // Close dropdown or mobile menu on outside click
+  // Close mobile menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent | TouchEvent) => {
       const target = e.target as Node;
-      // Close dropdown if click is outside dropdown
-      if (menuOpen && dropdownRef.current && !dropdownRef.current.contains(target)) {
-        setMenuOpen(false);
-      }
       // Close mobile drawer if click is outside the entire header
       if (mobileOpen && headerRef.current && !headerRef.current.contains(target)) {
         setMobileOpen(false);
@@ -51,7 +44,7 @@ export default function PublicNavbar() {
       document.removeEventListener('mousedown', handler);
       document.removeEventListener('touchstart', handler);
     };
-  }, [menuOpen, mobileOpen]);
+  }, [mobileOpen]);
 
   const isActive = (href: string) => pathname === href;
   const isMenu   = pathname.startsWith('/menu');
@@ -239,52 +232,13 @@ export default function PublicNavbar() {
               </Link>
             ))}
 
-            {/* Weekly Menu dropdown */}
-            <div ref={dropdownRef} style={{ position: 'relative' }}>
-              <button
-                className={`pnav-menu-btn${isMenu ? ' nav-active' : ''}`}
-                onClick={() => setMenuOpen(p => !p)}
-                aria-haspopup="true"
-                aria-expanded={menuOpen}
-              >
-                Weekly Menu
-                <span style={{
-                  fontSize: 9,
-                  display: 'inline-block',
-                  transform: menuOpen ? 'rotate(180deg)' : 'rotate(0)',
-                  transition: 'transform 0.2s',
-                  opacity: 0.6,
-                }}>▾</span>
-              </button>
-
-              {menuOpen && (
-                <div className="pnav-dropdown">
-                  <Link
-                    href="/menu/veg"
-                    className={`pnav-drop-item${pathname === '/menu/veg' ? ' drop-active' : ''}`}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span style={{ fontSize: 16 }}>🌿</span>
-                    <div>
-                      <div>Vegetarian Menu</div>
-                      <div style={{ fontSize: 10.5, fontWeight: 500, color: '#8FA48F', marginTop: 1 }}>Fresh veg meals this week</div>
-                    </div>
-                  </Link>
-                  <div className="pnav-drop-divider" />
-                  <Link
-                    href="/menu/non-veg"
-                    className={`pnav-drop-item${pathname === '/menu/non-veg' ? ' drop-active' : ''}`}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span style={{ fontSize: 16 }}>🍗</span>
-                    <div>
-                      <div>Non-Veg Menu</div>
-                      <div style={{ fontSize: 10.5, fontWeight: 500, color: '#8FA48F', marginTop: 1 }}>Non-veg meals this week</div>
-                    </div>
-                  </Link>
-                </div>
-              )}
-            </div>
+            {/* Weekly Menu Link */}
+            <Link
+              href="/menu"
+              className={`pnav-link${isActive('/menu') ? ' nav-active' : ''}`}
+            >
+              Our Menu
+            </Link>
 
             {/* Login Link */}
             <Link
@@ -354,18 +308,11 @@ export default function PublicNavbar() {
 
             {/* Menu sub-links in mobile */}
             <Link
-              href="/menu/veg"
-              className={`pnav-drawer-sub${pathname === '/menu/veg' ? ' nav-active' : ''}`}
+              href="/menu"
+              className={`pnav-drawer-item${isActive('/menu') ? ' nav-active' : ''}`}
               onClick={() => setMobileOpen(false)}
             >
-              🌿 Vegetarian Menu
-            </Link>
-            <Link
-              href="/menu/non-veg"
-              className={`pnav-drawer-sub${pathname === '/menu/non-veg' ? ' nav-active' : ''}`}
-              onClick={() => setMobileOpen(false)}
-            >
-              🍗 Non-Veg Menu
+              Our Menu
             </Link>
 
             <Link

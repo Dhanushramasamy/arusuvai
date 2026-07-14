@@ -46,7 +46,7 @@ export default function PublicFooter() {
               Explore
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[['/', 'Home'], ['/about', 'Our Story'], ['/menu/veg', 'Veg Menu'], ['/menu/non-veg', 'Non-Veg Menu'], ['/subscription', 'Subscriptions'], ['/contact', 'Contact']].map(([href, label]) => (
+              {[['/', 'Home'], ['/about', 'Our Story'], ['/menu', 'Our Menu'], ['/subscription', 'Subscriptions'], ['/contact', 'Contact']].map(([href, label]) => (
                 <Link key={href} href={href} style={{
                   fontSize: 13.5, color: 'rgba(255,255,255,0.7)', textDecoration: 'none',
                   fontWeight: 600, transition: 'color 0.15s',

@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 interface MenuDayCardProps {
   day: string;
   items: string[];
-  menuType: 'veg' | 'non_veg';
+  menuType: 'veg' | 'non_veg' | 'premium_non_veg';
   mealType?: 'Lunch' | 'Dinner';
 }
 
@@ -22,7 +22,7 @@ const DAY_THEMES: Record<string, { bg: string; border: string; accent: string; s
 export default function MenuDayCard({ day, items, menuType, mealType }: MenuDayCardProps) {
   const [hovered, setHovered] = useState(false);
   const theme = DAY_THEMES[day] || DAY_THEMES.Monday;
-  const isVeg = menuType === 'veg';
+  const isVeg = menuType === 'veg' || ((menuType === 'non_veg' || menuType === 'premium_non_veg') && (day === 'Tuesday' || day === 'Friday'));
 
   return (
     <div 
