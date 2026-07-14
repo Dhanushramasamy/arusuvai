@@ -8,7 +8,13 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes — no protection needed
-  if (pathname.startsWith('/login') || pathname.startsWith('/api/auth')) {
+  if (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/public') ||
+    pathname.startsWith('/menu') ||
+    pathname === '/subscription'
+  ) {
     return NextResponse.next();
   }
 
@@ -16,10 +22,10 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifyToken(token) : null;
 
-  // Root redirect
+  // Root redirect — logged-in users go to their dashboard; unauthenticated see landing page
   if (pathname === '/') {
     if (!session) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.next(); // Let the public landing page render
     }
     const dest =
       session.role === 'admin'
@@ -29,6 +35,7 @@ export async function middleware(request: NextRequest) {
         : '/client';
     return NextResponse.redirect(new URL(dest, request.url));
   }
+
 
   // Protected route groups
   const isClientRoute   = pathname.startsWith('/client');

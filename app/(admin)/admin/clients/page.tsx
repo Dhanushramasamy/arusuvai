@@ -222,7 +222,7 @@ export default function AdminClientsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {[
               { label: 'Full Name *', key: 'name', placeholder: 'e.g. Ramesh Kumar' },
-              { label: 'Phone Number *', key: 'phone_number', placeholder: 'e.g. 9876543210' },
+              { label: 'Phone Number *', key: 'phone_number', placeholder: 'e.g. 9092724170' },
               { label: 'Location / Area', key: 'location', placeholder: 'e.g. Anna Nagar' },
               { label: 'Password *', key: 'password', placeholder: 'Initial password' },
               { label: 'Delivery Note', key: 'delivery_note', placeholder: 'e.g. Gate 2, ring bell' },

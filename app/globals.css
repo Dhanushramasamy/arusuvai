@@ -1,34 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Outfit:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
 
 /* ================================================================
-   ARUSUVAI — Design Tokens
+   ARUSUVAI — Warm Cream / White Design Tokens
    ================================================================ */
 
 :root {
-  /* Brand colors */
   --color-primary:        #2C5E2E;
-  --color-primary-dark:   #1E4020;
-  --color-primary-light:  #EBF5EB;
-
-  --color-accent:         #F5A623;
-  --color-accent-dark:    #D4891A;
-  --color-accent-light:   #FEF3DC;
+  --color-primary-dark:   #1A3A1C;
+  --color-accent:         #E8A020;
+  --color-accent-dark:    #C4861A;
 
   /* Surfaces */
+  --color-bg:             #FFFDF7;
   --color-surface:        #FFFFFF;
-  --color-bg:             #F7F8F5;
-  --color-border:         #E2E8E2;
+  --color-surface-2:      #F7F4EE;
+  --color-border:         #E8E2D5;
+  --color-border-light:   #F0EDE5;
 
   /* Text */
-  --color-text:           #1A2E1A;
+  --color-text:           #1C2B1C;
   --color-text-muted:     #5C6E5C;
   --color-text-light:     #8FA48F;
 
   /* Status */
   --color-success:        #22C55E;
-  --color-warning:        #F59E0B;
   --color-error:          #EF4444;
-  --color-info:           #3B82F6;
 }
 
 /* ================================================================
@@ -41,101 +37,62 @@
   padding: 0;
 }
 
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+html { -webkit-font-smoothing: antialiased; }
 
 body {
-  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Quicksand', system-ui, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
-  line-height: 1.5;
+  line-height: 1.6;
   min-height: 100vh;
 }
-input, button, select, textarea, .sans-font {
-  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
-}
-.serif-font {
-  font-family: 'Playfair Display', Georgia, Cambria, serif;
+
+input, button, select, textarea {
+  font-family: 'Quicksand', system-ui, sans-serif;
 }
 
 /* ================================================================
-   Tailwind CSS v4 theme inline config
+   Scrollbar
    ================================================================ */
-@theme {
-  --color-brand:       #2C5E2E;
-  --color-brand-dark:  #1E4020;
-  --color-brand-light: #EBF5EB;
-  --color-accent:      #F5A623;
-  --color-accent-dark: #D4891A;
-  --color-accent-light:#FEF3DC;
-
-  --font-family-display: 'Playfair Display', Georgia, Cambria, serif;
-  --font-family-body:    'Outfit', sans-serif;
-}
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
 
 /* ================================================================
-   Scrollbar styling
+   Focus
    ================================================================ */
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-bg);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-}
-
-/* ================================================================
-   Focus styles
-   ================================================================ */
-
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 /* ================================================================
-   Utility animations
+   Animations
    ================================================================ */
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideUp {
+@keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease forwards;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.4s ease forwards;
+/* ================================================================
+   Tailwind v4 theme
+   ================================================================ */
+@theme {
+  --color-brand:       #2C5E2E;
+  --color-brand-dark:  #1A3A1C;
+  --color-accent:      #E8A020;
+  --font-family-body:  'Quicksand', sans-serif;
 }
 
 /* ================================================================
-   Shared UI helpers (non-Tailwind, used in component CSS)
+   Admin / internal UI helpers
    ================================================================ */
 
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
 .btn-primary {
@@ -152,15 +109,14 @@ input, button, select, textarea, .sans-font {
 
 .btn-accent {
   background: var(--color-accent);
-  color: white;
+  color: #fff;
   border: none;
   border-radius: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.1s ease;
 }
-.btn-accent:hover  { background: var(--color-accent-dark); }
-.btn-accent:active { transform: scale(0.98); }
+.btn-accent:hover { background: var(--color-accent-dark); }
 
 .btn-ghost {
   background: white;
@@ -171,9 +127,8 @@ input, button, select, textarea, .sans-font {
   cursor: pointer;
   transition: background 0.15s ease;
 }
-.btn-ghost:hover { background: var(--color-bg); }
+.btn-ghost:hover { background: var(--color-surface-2); }
 
-/* Input base */
 .input-base {
   border: 1.5px solid var(--color-border);
   border-radius: 12px;
@@ -181,15 +136,14 @@ input, button, select, textarea, .sans-font {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
-  background: var(--color-bg);
+  background: #fff;
   width: 100%;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .input-base:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(44,94,46,0.12);
-  background: white;
+  box-shadow: 0 0 0 3px rgba(44,94,46,0.1);
 }
 .input-base::placeholder {
   color: var(--color-text-light);

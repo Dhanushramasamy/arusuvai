@@ -192,6 +192,103 @@ VALUES (
     '$2b$10$11O4CyAAVe84igQE1gFgSOHu2vkbtZ4jXRaKeViOWz/6qgM9cbwP2'
 );
 
+-- ----------------------------------------------------------------
+-- 7. WEEKLY MENU
+--    Stores the weekly menu items for each day per type (veg/non_veg)
+--    and meal (Lunch/Dinner). Admin manages this from the admin panel.
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS weekly_menu (
+    id          SERIAL PRIMARY KEY,
+    menu_type   VARCHAR(10) NOT NULL CHECK (menu_type IN ('veg', 'non_veg')),
+    day_of_week VARCHAR(10) NOT NULL CHECK (day_of_week IN ('Monday','Tuesday','Wednesday','Thursday','Friday')),
+    meal_type   VARCHAR(10) NOT NULL CHECK (meal_type IN ('Lunch','Dinner')),
+    items       TEXT[]      NOT NULL DEFAULT '{}',
+    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT unique_menu_day_meal UNIQUE (menu_type, day_of_week, meal_type)
+);
+
+-- ----------------------------------------------------------------
+-- 8. SUBSCRIPTION PLANS
+--    Public-facing pricing cards managed by admin.
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS subscription_plans (
+    id              SERIAL PRIMARY KEY,
+    plan_name       VARCHAR(50)   NOT NULL,
+    plan_type       VARCHAR(20)   NOT NULL,
+    price           NUMERIC(10,2) NOT NULL,
+    duration_days   INTEGER       NOT NULL DEFAULT 26,
+    features        TEXT[]        NOT NULL DEFAULT '{}',
+    whatsapp_number VARCHAR(20)   NOT NULL DEFAULT '',
+    is_active       BOOLEAN       NOT NULL DEFAULT true,
+    sort_order      INTEGER       NOT NULL DEFAULT 0,
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ----------------------------------------------------------------
+-- SEED: Weekly Menu (Veg — Lunch)
+-- ----------------------------------------------------------------
+INSERT INTO weekly_menu (menu_type, day_of_week, meal_type, items) VALUES
+  ('veg', 'Monday',    'Lunch', ARRAY['Rice', 'Sambar', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam']),
+  ('veg', 'Tuesday',   'Lunch', ARRAY['Rice', 'Kootu', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam']),
+  ('veg', 'Wednesday', 'Lunch', ARRAY['Rice', 'Kara Kulambu', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam']),
+  ('veg', 'Thursday',  'Lunch', ARRAY['Rice', 'Sambar', 'Kootu', 'Rasam', 'Buttermilk', 'Appalam']),
+  ('veg', 'Friday',    'Lunch', ARRAY['Lemon Rice', 'Kootu', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam'])
+ON CONFLICT (menu_type, day_of_week, meal_type) DO NOTHING;
+
+-- ----------------------------------------------------------------
+-- SEED: Weekly Menu (Veg — Dinner)
+-- ----------------------------------------------------------------
+INSERT INTO weekly_menu (menu_type, day_of_week, meal_type, items) VALUES
+  ('veg', 'Monday',    'Dinner', ARRAY['Chapati', 'Dal', 'Sabzi']),
+  ('veg', 'Tuesday',   'Dinner', ARRAY['Rice', 'Rasam', 'Papad']),
+  ('veg', 'Wednesday', 'Dinner', ARRAY['Chapati', 'Kurma', 'Rice']),
+  ('veg', 'Thursday',  'Dinner', ARRAY['Rice', 'Sambar', 'Sabzi']),
+  ('veg', 'Friday',    'Dinner', ARRAY['Chapati', 'Dal Fry', 'Salad'])
+ON CONFLICT (menu_type, day_of_week, meal_type) DO NOTHING;
+
+-- ----------------------------------------------------------------
+-- SEED: Weekly Menu (Non-Veg — Lunch)
+-- ----------------------------------------------------------------
+INSERT INTO weekly_menu (menu_type, day_of_week, meal_type, items) VALUES
+  ('non_veg', 'Monday',    'Lunch', ARRAY['Rice', 'Chicken Kulambu', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam']),
+  ('non_veg', 'Tuesday',   'Lunch', ARRAY['Rice', 'Sambar', 'Kootu', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam']),
+  ('non_veg', 'Wednesday', 'Lunch', ARRAY['Rice', 'Kara Kulambu', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam']),
+  ('non_veg', 'Thursday',  'Lunch', ARRAY['Rice', 'Sambar', 'Kootu', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam']),
+  ('non_veg', 'Friday',    'Lunch', ARRAY['Lemon Rice', 'Egg Curry', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam'])
+ON CONFLICT (menu_type, day_of_week, meal_type) DO NOTHING;
+
+-- ----------------------------------------------------------------
+-- SEED: Weekly Menu (Non-Veg — Dinner)
+-- ----------------------------------------------------------------
+INSERT INTO weekly_menu (menu_type, day_of_week, meal_type, items) VALUES
+  ('non_veg', 'Monday',    'Dinner', ARRAY['Chapati', 'Chicken Curry', 'Rice']),
+  ('non_veg', 'Tuesday',   'Dinner', ARRAY['Rice', 'Fish Curry', 'Papad']),
+  ('non_veg', 'Wednesday', 'Dinner', ARRAY['Chapati', 'Egg Masala', 'Rice']),
+  ('non_veg', 'Thursday',  'Dinner', ARRAY['Rice', 'Mutton Kulambu', 'Sabzi']),
+  ('non_veg', 'Friday',    'Dinner', ARRAY['Chapati', 'Chicken Gravy', 'Salad'])
+ON CONFLICT (menu_type, day_of_week, meal_type) DO NOTHING;
+
+-- ----------------------------------------------------------------
+-- SEED: Subscription Plans
+-- ----------------------------------------------------------------
+INSERT INTO subscription_plans (plan_name, plan_type, price, duration_days, features, whatsapp_number, is_active, sort_order) VALUES
+  (
+    'Lunch (Veg)', 'veg', 3600, 26,
+    ARRAY['Pure Vegetarian Meals', 'Freshly Cooked Daily', 'Delivered in Steel Containers', 'Lunch Delivery'],
+    '919876543210', true, 1
+  ),
+  (
+    'Lunch (Non Veg)', 'non_veg', 4200, 26,
+    ARRAY['Non Vegetarian Meals', 'Freshly Cooked Daily', 'Delivered in Steel Containers', 'Lunch Delivery'],
+    '919876543210', true, 2
+  ),
+  (
+    'Dinner', 'dinner', 2000, 26,
+    ARRAY['Homely Dinner Meals', 'Freshly Cooked Daily', 'Delivered in Steel Containers', 'Dinner Delivery'],
+    '919876543210', true, 3
+  )
+ON CONFLICT DO NOTHING;
+
 -- ================================================================
 -- NOTES FOR APPLICATION LAYER
 -- ================================================================

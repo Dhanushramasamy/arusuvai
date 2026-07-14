@@ -44,26 +44,29 @@ export default function LoginPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #1E4020 0%, #2C5E2E 40%, #1A3820 100%)',
+        background: 'var(--color-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 16,
         position: 'relative',
         overflow: 'hidden',
+        fontFamily: 'Quicksand, sans-serif',
       }}
     >
       {/* Background decoration */}
       <div style={{
         position: 'absolute', top: -80, right: -80,
         width: 320, height: 320, borderRadius: '50%',
-        background: 'rgba(245,166,35,0.08)',
+        background: '#E8A020',
+        opacity: 0.05,
         pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute', bottom: -120, left: -80,
         width: 400, height: 400, borderRadius: '50%',
-        background: 'rgba(255,255,255,0.04)',
+        background: '#2C5E2E',
+        opacity: 0.03,
         pointerEvents: 'none',
       }} />
 
@@ -71,11 +74,12 @@ export default function LoginPage() {
       <div
         style={{
           background: 'white',
-          borderRadius: 28,
+          borderRadius: 24,
           padding: '40px 36px',
           width: '100%',
           maxWidth: 420,
-          boxShadow: '0 32px 64px rgba(0,0,0,0.28)',
+          border: '1px solid #E8E2D5',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.05)',
           animation: 'slideUp 0.4s ease',
         }}
       >
@@ -163,7 +167,7 @@ export default function LoginPage() {
               padding: '14px 24px',
               background: loading
                 ? '#8FA48F'
-                : 'linear-gradient(135deg, #2C5E2E, #1E4020)',
+                : '#2C5E2E',
               color: 'white',
               border: 'none',
               borderRadius: 14,
@@ -221,12 +225,12 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '12px 14px',
-  border: '1.5px solid #E2E8E2',
+  border: '1.5px solid #E8E2D5',
   borderRadius: 12,
   fontSize: 14,
   fontWeight: 600,
   color: '#1A2E1A',
-  background: '#F7F8F5',
+  background: '#FFFDF7',
   boxSizing: 'border-box',
   outline: 'none',
   transition: 'border-color 0.15s ease',

@@ -5,11 +5,14 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/i18n';
 
 const adminTabs = [
-  { href: '/admin',                   label: 'nav.today',    icon: '📦' },
-  { href: '/admin/clients',           label: 'nav.clients',  icon: '👥' },
-  { href: '/admin/delivery-persons',  label: 'nav.delivery', icon: '🛵' },
-  { href: '/admin/packages',          label: 'nav.packages', icon: '🏷️' },
+  { href: '/admin',                       label: 'nav.today',    icon: '📦' },
+  { href: '/admin/clients',               label: 'nav.clients',  icon: '👥' },
+  { href: '/admin/delivery-persons',      label: 'nav.delivery', icon: '🛵' },
+  { href: '/admin/packages',              label: 'nav.packages', icon: '🏷️' },
+  { href: '/admin/weekly-menu',           label: 'nav.menu',     icon: '🍛' },
+  { href: '/admin/subscription-plans',    label: 'nav.plans',    icon: '💰' },
 ];
+
 
 export default function AdminLayoutInner({ name, children }: { name: string; children: React.ReactNode }) {
   const { t } = useTranslation();

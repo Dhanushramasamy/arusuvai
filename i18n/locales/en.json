@@ -126,6 +126,9 @@
   "pkg.lunch": "Lunch",
   "pkg.dinner": "Dinner",
   "nav.packages": "Packages",
+  "nav.menu": "Weekly Menu",
+  "nav.plans": "Sub Plans",
+
   "pkg.title": "Subscription Packages",
   "pkg.subtitle": "Manage predefined package options for client registrations",
   "pkg.create": "Create Predefined Package",
