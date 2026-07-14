@@ -17,6 +17,7 @@ export default function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen]     = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
 
   // Scroll shadow
   useEffect(() => {
@@ -31,16 +32,26 @@ export default function PublicNavbar() {
     setMenuOpen(false);
   }, [pathname]);
 
-  // Close dropdown on outside click
+  // Close dropdown or mobile menu on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      // Close dropdown if click is outside dropdown
+      if (menuOpen && dropdownRef.current && !dropdownRef.current.contains(target)) {
         setMenuOpen(false);
+      }
+      // Close mobile drawer if click is outside the entire header
+      if (mobileOpen && headerRef.current && !headerRef.current.contains(target)) {
+        setMobileOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [menuOpen, mobileOpen]);
 
   const isActive = (href: string) => pathname === href;
   const isMenu   = pathname.startsWith('/menu');
@@ -181,7 +192,7 @@ export default function PublicNavbar() {
         .pnav-drawer-subscribe:hover { background: #1A3A1C; }
       `}</style>
 
-      <header style={{
+      <header ref={headerRef} style={{
         position: 'sticky',
         top: 0,
         zIndex: 200,
