@@ -22,6 +22,7 @@ export default function AdminWeeklyMenuPage() {
   const [loading, setLoading] = useState(true);
   const [menuType, setMenuType] = useState<MenuType>('veg');
   const [mealType, setMealType] = useState<MealType>('Lunch');
+  const [dateRange, setDateRange] = useState('This Week');
   const [saving, setSaving] = useState<string | null>(null); // which day is saving
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +31,12 @@ export default function AdminWeeklyMenuPage() {
 
   const load = useCallback((bypass = false) => {
     setLoading(true);
+    swrFetch('/api/admin/settings', (json) => {
+      if (json.data?.menu_date_range) {
+        setDateRange(json.data.menu_date_range);
+      }
+    }, { bypassCache: bypass });
+
     return swrFetch('/api/admin/weekly-menu', (json) => {
       setRows(json.data ?? []);
       setLoading(false);
@@ -104,6 +111,30 @@ export default function AdminWeeklyMenuPage() {
     setTimeout(() => setSaved(null), 2000);
   }
 
+  async function handleSaveDate() {
+    setSaving('date');
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: { menu_date_range: dateRange } }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        invalidateCache('/api/admin/settings');
+        setSaved('date');
+        setTimeout(() => setSaved(null), 2000);
+      } else {
+        setError(data.error ?? 'Failed to save date range');
+      }
+    } catch (e) {
+      setError('An error occurred');
+    } finally {
+      setSaving(null);
+    }
+  }
+
   const dayIcons: Record<string, string> = {
     Monday: '🌅', Tuesday: '☀️', Wednesday: '🌤️', Thursday: '⛅', Friday: '🌈', Saturday: '🎉',
   };
@@ -142,6 +173,30 @@ export default function AdminWeeklyMenuPage() {
           ⚠ {error}
         </div>
       )}
+
+      {/* Date Range Settings */}
+      <div style={{ background: 'white', border: '1.5px solid var(--color-border)', borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 14, color: 'var(--color-text)' }}>Menu Display Date Range</h3>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--color-text-light)' }}>
+              Text shown on the public menu pages (e.g., &quot;This Week&quot; or &quot;July 15 - July 21&quot;).
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input 
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              style={{
+                padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13, minWidth: 200
+              }}
+            />
+            <Button loading={saving === 'date'} onClick={handleSaveDate}>
+              {saved === 'date' ? '✓ Saved' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Type + Meal tabs */}
       <div style={{ background: 'white', border: '1.5px solid var(--color-border)', borderRadius: 14, padding: 6, marginBottom: 16, display: 'flex', gap: 4 }}>

@@ -30,7 +30,12 @@ async function getNonVegMenu() {
 }
 
 export default async function NonVegMenuPage() {
-  const menuRows = await getNonVegMenu();
+  const [menuRows, settingsResult] = await Promise.all([
+    getNonVegMenu(),
+    pool.query("SELECT setting_value FROM site_settings WHERE setting_key = 'menu_date_range'").catch(() => ({ rows: [] }))
+  ]);
+  const dateRange = settingsResult.rows[0]?.setting_value || 'This Week';
+
   const byDay: Record<string, { lunch?: string[]; dinner?: string[] }> = {};
   for (const row of menuRows) {
     if (!byDay[row.day_of_week]) byDay[row.day_of_week] = {};
@@ -142,7 +147,7 @@ export default async function NonVegMenuPage() {
             <img src="/images/Non-Vegetarian Weekly Menu Page Header.png" alt="Non-vegetarian chicken curry" />
           </div>
           <div className="nvp-hero-left">
-            <div className="nvp-kicker">Non-Vegetarian Menu</div>
+            <div className="nvp-kicker">Non-Vegetarian Menu — {dateRange.toUpperCase()}</div>
             <h1 className="nvp-h1">Weekly Non-Veg<br />Menu</h1>
             <p className="nvp-sub">
               Rich, hearty home-cooked non-veg meals. Fresh meat, bold spices, pure comfort — delivered Monday to Saturday.
@@ -159,7 +164,7 @@ export default async function NonVegMenuPage() {
 
         <section className="nvp-section">
           <div className="nvp-inner">
-            <div className="nvp-sec-label">🍗 Lunch — This Week</div>
+            <div className="nvp-sec-label">🍗 Lunch — {dateRange}</div>
             <div className="nvp-grid">
               {DAYS.map(day => (
                 <MenuDayCard key={day} day={day} items={byDay[day]?.lunch || fallback} menuType="non_veg" mealType="Lunch" />
@@ -169,7 +174,7 @@ export default async function NonVegMenuPage() {
             {Object.values(byDay).some(d => d.dinner) && (
               <>
                 <div className="nvp-divider" style={{ margin: '0 0 40px' }} />
-                <div className="nvp-sec-label">🍲 Dinner — This Week</div>
+                <div className="nvp-sec-label">🍲 Dinner — {dateRange}</div>
                 <div className="nvp-grid">
                   {DAYS.filter(day => byDay[day]?.dinner).map(day => (
                     <MenuDayCard key={day} day={day} items={byDay[day].dinner!} menuType="non_veg" mealType="Dinner" />

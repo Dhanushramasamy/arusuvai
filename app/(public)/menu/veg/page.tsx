@@ -30,7 +30,12 @@ async function getVegMenu() {
 }
 
 export default async function VegMenuPage() {
-  const menuRows = await getVegMenu();
+  const [menuRows, settingsResult] = await Promise.all([
+    getVegMenu(),
+    pool.query("SELECT setting_value FROM site_settings WHERE setting_key = 'menu_date_range'").catch(() => ({ rows: [] }))
+  ]);
+  const dateRange = settingsResult.rows[0]?.setting_value || 'This Week';
+
   const byDay: Record<string, { lunch?: string[]; dinner?: string[] }> = {};
   for (const row of menuRows) {
     if (!byDay[row.day_of_week]) byDay[row.day_of_week] = {};
@@ -139,7 +144,7 @@ export default async function VegMenuPage() {
         {/* Hero */}
         <section className="vp-hero">
           <div className="vp-hero-left">
-            <div className="vp-kicker">Vegetarian Menu</div>
+            <div className="vp-kicker">Vegetarian Menu — {dateRange.toUpperCase()}</div>
             <h1 className="vp-h1">Weekly Veg<br />Menu</h1>
             <p className="vp-sub">
               Wholesome South Indian vegetarian meals prepared fresh every morning. Delivered to your doorstep, Monday to Saturday.
@@ -160,7 +165,7 @@ export default async function VegMenuPage() {
         {/* Lunch menu */}
         <section className="vp-section">
           <div className="vp-inner">
-            <div className="vp-sec-label">🌿 Lunch — This Week</div>
+            <div className="vp-sec-label">🌿 Lunch — {dateRange}</div>
             <div className="vp-grid">
               {DAYS.map(day => (
                 <MenuDayCard key={day} day={day} items={byDay[day]?.lunch || fallback} menuType="veg" mealType="Lunch" />
@@ -170,7 +175,7 @@ export default async function VegMenuPage() {
             {Object.values(byDay).some(d => d.dinner) && (
               <>
                 <div className="vp-divider" style={{ margin: '0 0 40px' }} />
-                <div className="vp-sec-label">🍲 Dinner — This Week</div>
+                <div className="vp-sec-label">🍲 Dinner — {dateRange}</div>
                 <div className="vp-grid">
                   {DAYS.filter(day => byDay[day]?.dinner).map(day => (
                     <MenuDayCard key={day} day={day} items={byDay[day].dinner!} menuType="veg" mealType="Dinner" />
