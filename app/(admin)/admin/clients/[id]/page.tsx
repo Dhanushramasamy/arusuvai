@@ -322,9 +322,22 @@ export default function ClientDetailPage({ params }: ClientDetailProps) {
               Registered on {new Date(client.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
           </div>
-          <Badge variant={status === 'active' ? 'active' : status === 'not_started' ? 'not_started' : 'expired'}>
-            {status === 'active' ? 'Active' : status === 'not_started' ? 'Not Started' : 'Expired'}
-          </Badge>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <a 
+              href={`/api/admin/clients/${id}/export`}
+              download
+              style={{
+                padding: '6px 14px', background: '#F0F9FF', color: '#0284C7',
+                border: '1.5px solid #BAE6FD', borderRadius: 8, fontSize: 12, fontWeight: 700, 
+                textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s ease'
+              }}
+            >
+              📥 Export Logs (Excel)
+            </a>
+            <Badge variant={status === 'active' ? 'active' : status === 'not_started' ? 'not_started' : 'expired'}>
+              {status === 'active' ? 'Active' : status === 'not_started' ? 'Not Started' : 'Expired'}
+            </Badge>
+          </div>
         </div>
       </div>
 

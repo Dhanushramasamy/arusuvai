@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import CustomConfirmModal from '@/components/ui/CustomConfirmModal';
 import { swrFetch, invalidateCache } from '@/lib/clientCache';
+import Link from 'next/link';
 
 interface DeliveryPerson {
   id: string; name: string; phone_number: string;
@@ -184,6 +185,16 @@ export default function AdminDeliveryPersonsPage() {
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--color-text-light)', fontWeight: 600 }}>delivered today</div>
                 </div>
+                <Link
+                  href={`/admin/delivery-persons/${p.id}`}
+                  style={{
+                    padding: '6px 12px', background: '#F0FDF4', color: '#16A34A',
+                    border: '1px solid #BBF7D0', borderRadius: 8,
+                    fontWeight: 700, fontSize: 11, cursor: 'pointer', textDecoration: 'none'
+                  }}
+                >
+                  View Logs
+                </Link>
                 <button
                   onClick={() => startEdit(p)}
                   style={{

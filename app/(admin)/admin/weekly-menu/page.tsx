@@ -153,7 +153,7 @@ export default function AdminWeeklyMenuPage() {
   }
 
   const dayIcons: Record<string, string> = {
-    Monday: '🌅', Tuesday: '☀️', Wednesday: '🌤️', Thursday: '⛅', Friday: '🌈', Saturday: '🎉',
+    Monday: '🌅', Tuesday: '☀️', Wednesday: '🌤️', Thursday: '⛅', Friday: '🌟', Saturday: '🎉',
   };
 
   const tabStyle = (active: boolean, color?: string): React.CSSProperties => ({
