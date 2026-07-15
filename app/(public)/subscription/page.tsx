@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 interface Plan {
-  id: number;
+  id: string;
   plan_name: string;
   plan_type: string;
   price: number;
@@ -24,8 +24,21 @@ interface Plan {
 async function getPlans(): Promise<Plan[]> {
   try {
     const result = await pool.query(
-      `SELECT id, plan_name, plan_type, price, duration_days, features, whatsapp_number
-       FROM subscription_plans WHERE is_active = true ORDER BY sort_order ASC`
+      `SELECT 
+         id,
+         name AS plan_name,
+         CASE 
+           WHEN meal_type = 'Dinner' THEN 'dinner'
+           WHEN diet_type = 'Non-Veg' THEN 'non_veg'
+           ELSE 'veg'
+         END AS plan_type,
+         price,
+         days AS duration_days,
+         features,
+         whatsapp_number
+       FROM subscription_packages
+       WHERE is_public = true
+       ORDER BY sort_order ASC, created_at DESC`
     );
     return result.rows;
   } catch {
@@ -250,7 +263,7 @@ export default async function SubscriptionPage() {
                 borderRadius: 10, fontSize: 13.5, fontWeight: 800, textDecoration: 'none',
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>💬 Chat on WhatsApp</a>
-              <Link href="/menu/veg" style={{
+              <Link href="/menu" style={{
                 padding: '12px 22px', background: '#fff', color: '#2C5E2E',
                 border: '1.5px solid #C8D8C8',
                 borderRadius: 10, fontSize: 13.5, fontWeight: 700, textDecoration: 'none',

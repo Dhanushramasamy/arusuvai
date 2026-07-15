@@ -24,6 +24,10 @@ export default function SubscriptionPackagesPage() {
     subscribe_lunch: true,
     subscribe_dinner: false,
     price: '',
+    is_public: false,
+    features: '',
+    whatsapp_number: '919092724170',
+    sort_order: '0',
   });
 
   const loadPackages = (bypassCache = false) => {
@@ -40,7 +44,7 @@ export default function SubscriptionPackagesPage() {
     return unsub;
   }, []);
 
-  const startEdit = (pkg: { id: string; name: string; days: number; diet_type: string; meal_type: string; price: number | string }) => {
+  const startEdit = (pkg: any) => {
     setEditingId(pkg.id);
     const meals = pkg.meal_type || '';
     setForm({
@@ -51,6 +55,10 @@ export default function SubscriptionPackagesPage() {
       subscribe_lunch: meals.includes('Lunch'),
       subscribe_dinner: meals.includes('Dinner'),
       price: String(pkg.price),
+      is_public: pkg.is_public || false,
+      features: Array.isArray(pkg.features) ? pkg.features.join('\n') : '',
+      whatsapp_number: pkg.whatsapp_number || '919092724170',
+      sort_order: String(pkg.sort_order || 0),
     });
   };
 
@@ -64,6 +72,10 @@ export default function SubscriptionPackagesPage() {
       subscribe_lunch: true,
       subscribe_dinner: false,
       price: '',
+      is_public: false,
+      features: '',
+      whatsapp_number: '919092724170',
+      sort_order: '0',
     });
   };
 
@@ -96,6 +108,10 @@ export default function SubscriptionPackagesPage() {
           meal_type: mealTypes.join(' + '),
           diet_type: form.diet_type,
           price: parseFloat(form.price),
+          is_public: form.is_public,
+          features: form.features.split('\n').map(s => s.trim()).filter(Boolean),
+          whatsapp_number: form.whatsapp_number.trim(),
+          sort_order: parseInt(form.sort_order) || 0,
         }),
       });
 
@@ -109,6 +125,10 @@ export default function SubscriptionPackagesPage() {
           subscribe_lunch: true,
           subscribe_dinner: false,
           price: '',
+          is_public: false,
+          features: '',
+          whatsapp_number: '919092724170',
+          sort_order: '0',
         });
         invalidateCache('/api/admin/packages');
         setEditingId(null);
@@ -266,6 +286,51 @@ export default function SubscriptionPackagesPage() {
               </div>
             </div>
 
+            <div style={{ marginTop: 8, padding: 12, background: 'var(--color-bg)', borderRadius: 10, border: '1.5px solid var(--color-border)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--color-text)', cursor: 'pointer', marginBottom: form.is_public ? 12 : 0 }}>
+                <input
+                  type="checkbox"
+                  checked={form.is_public}
+                  onChange={(e) => setForm(f => ({ ...f, is_public: e.target.checked }))}
+                />
+                Show on Subscription Page
+              </label>
+              
+              {form.is_public && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div>
+                    <label style={labelStyle}>Features (One per line)</label>
+                    <textarea
+                      placeholder="Freshly Cooked Daily&#10;Doorstep Delivery"
+                      value={form.features}
+                      onChange={(e) => setForm(f => ({ ...f, features: e.target.value }))}
+                      style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div>
+                      <label style={labelStyle}>WhatsApp Number</label>
+                      <input
+                        type="text"
+                        value={form.whatsapp_number}
+                        onChange={(e) => setForm(f => ({ ...f, whatsapp_number: e.target.value }))}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Sort Order</label>
+                      <input
+                        type="number"
+                        value={form.sort_order}
+                        onChange={(e) => setForm(f => ({ ...f, sort_order: e.target.value }))}
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
               {editingId && (
                 <Button type="button" variant="ghost" onClick={cancelEdit} style={{ flex: 1 }}>
@@ -311,6 +376,11 @@ export default function SubscriptionPackagesPage() {
                       <Badge variant={pkg.diet_type === 'Veg' ? 'active' : 'expired'}>
                         {pkg.diet_type === 'Veg' ? t('pkg.veg') : t('pkg.nonVeg')}
                       </Badge>
+                      {pkg.is_public && (
+                        <span style={{ fontSize: 10, fontWeight: 800, background: '#FEF3DC', color: '#B45309', padding: '2px 6px', borderRadius: 6, textTransform: 'uppercase' }}>
+                          Public
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4 }}>
                       🕒 {pkg.days} days • 🍱 {pkg.meal_type}

@@ -363,7 +363,7 @@ export default function AboutPage() {
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/subscription" className="ap-btn-green">View Subscription Plans →</Link>
-              <Link href="/menu/veg" className="ap-btn-ghost">🌿 See This Week&apos;s Menu</Link>
+              <Link href="/menu" className="ap-btn-ghost">🌿 See This Week&apos;s Menu</Link>
             </div>
           </div>
         </section>

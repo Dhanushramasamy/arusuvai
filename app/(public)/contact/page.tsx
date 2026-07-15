@@ -308,7 +308,7 @@ export default function ContactPage() {
                 <Link href="/subscription" style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', fontWeight: 600 }}>
                   View plans first
                 </Link>
-                <Link href="/menu/veg" style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', fontWeight: 600 }}>
+                <Link href="/menu" style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', fontWeight: 600 }}>
                   See menu
                 </Link>
               </div>

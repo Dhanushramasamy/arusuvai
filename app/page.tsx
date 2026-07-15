@@ -1,7 +1,4 @@
 import React from 'react';
-import pool from '@/lib/db';
-import MenuDayCard from '@/components/public/MenuDayCard';
-import PricingCard from '@/components/public/PricingCard';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import PublicNavbar from '@/components/public/PublicNavbar';
@@ -14,36 +11,7 @@ export const metadata: Metadata = {
 
 export const revalidate = 60;
 
-async function getHomeData() {
-  try {
-    const [menuResult, plansResult] = await Promise.all([
-      pool.query(
-        `SELECT menu_type, day_of_week, meal_type, items
-         FROM weekly_menu
-         WHERE day_of_week IN ('Monday','Tuesday','Wednesday') AND meal_type = 'Lunch'
-         ORDER BY menu_type,
-           CASE day_of_week WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 ELSE 3 END
-         LIMIT 6`
-      ),
-      pool.query(
-        `SELECT id, plan_name, plan_type, price, duration_days, features, whatsapp_number
-         FROM subscription_plans WHERE is_active = true ORDER BY sort_order LIMIT 3`
-      ),
-    ]);
-    return { menuHighlights: menuResult.rows, plans: plansResult.rows };
-  } catch {
-    return { menuHighlights: [], plans: [] };
-  }
-}
-
-export default async function LandingPage() {
-  const { menuHighlights, plans } = await getHomeData();
-  const vegPreviews = menuHighlights.filter(r => r.menu_type === 'veg').slice(0, 3);
-  const previewCards = vegPreviews.length > 0 ? vegPreviews : [
-    { day_of_week: 'Monday',    items: ['Rice', 'Sambar', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam'], menu_type: 'veg', meal_type: 'Lunch' },
-    { day_of_week: 'Tuesday',   items: ['Rice', 'Kara Kulambu', 'Kootu', 'Rasam', 'Buttermilk', 'Appalam'], menu_type: 'veg', meal_type: 'Lunch' },
-    { day_of_week: 'Wednesday', items: ['Lemon Rice', 'Kootu', 'Poriyal', 'Rasam', 'Buttermilk', 'Appalam'], menu_type: 'veg', meal_type: 'Lunch' },
-  ];
+export default function LandingPage() {
 
   return (
     <>
@@ -473,7 +441,7 @@ export default async function LandingPage() {
               Freshly prepared South Indian home-cooked meals delivered to your doorstep Monday to Saturday. No preservatives. Just love.
             </p>
             <div className="hero-actions">
-              <Link href="/menu/veg" className="btn-solid-green">🍽️ View This Week&apos;s Menu</Link>
+              <Link href="/menu" className="btn-solid-green">🍽️ View This Week&apos;s Menu</Link>
               <Link href="/subscription" className="btn-link-green">Subscription Plans</Link>
             </div>
             <div className="hero-trust">
@@ -505,12 +473,12 @@ export default async function LandingPage() {
             <div className="explore-grid">
               {[
                 { href: '/about',        icon: '🏠', title: 'Our Story',         desc: 'Learn about our kitchen, our values, and why we started Arusuvai.',  color: '#2C5E2E', bg: '#EBF5EB', border: '#C8D8C8' },
-                { href: '/menu/veg',     icon: '🌿', title: 'Vegetarian Menu',   desc: "Browse this week's fresh vegetarian meals. Updated every week.",       color: '#2C5E2E', bg: '#EBF5EB', border: '#C8D8C8' },
-                { href: '/menu/non-veg', icon: '🍗', title: 'Non-Veg Menu',      desc: 'Rich, hearty non-veg meals prepared fresh every morning.',             color: '#B45309', bg: '#FEF3DC', border: '#F0D090' },
+                { href: '/menu',     icon: '🌿', title: 'Vegetarian Menu',   desc: "Browse this week's fresh vegetarian meals. Updated every week.",       color: '#2C5E2E', bg: '#EBF5EB', border: '#C8D8C8' },
+                { href: '/menu', icon: '🍗', title: 'Non-Veg Menu',      desc: 'Rich, hearty non-veg meals prepared fresh every morning.',             color: '#B45309', bg: '#FEF3DC', border: '#F0D090' },
                 { href: '/subscription', icon: '💰', title: 'Subscription Plans', desc: 'Pick an affordable plan and get meals delivered every day.',            color: '#6D28D9', bg: '#F0EBFF', border: '#C4B5FD' },
                 { href: '/contact',      icon: '💬', title: 'Contact Us',        desc: 'Have questions? Message us on WhatsApp — we reply fast.',             color: '#0891B2', bg: '#E0F2FE', border: '#BAE6FD' },
               ].map(item => (
-                <Link key={item.href} href={item.href} className="explore-card">
+                <Link key={item.title} href={item.href} className="explore-card">
                   <div className="explore-card-icon" style={{ background: item.bg, border: `1px solid ${item.border}` }}>
                     {item.icon}
                   </div>

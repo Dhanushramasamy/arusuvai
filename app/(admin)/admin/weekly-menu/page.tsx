@@ -13,6 +13,7 @@ interface MenuRow {
   day_of_week: string;
   meal_type: MealType;
   items: string[];
+  is_veg_override: boolean;
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -28,6 +29,7 @@ export default function AdminWeeklyMenuPage() {
   const [error, setError] = useState<string | null>(null);
   // Local edits: key = `${menuType}-${day}-${mealType}`, value = comma-joined items string
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [vegOverrides, setVegOverrides] = useState<Record<string, boolean>>({});
 
   const load = useCallback((bypass = false) => {
     setLoading(true);
@@ -55,15 +57,28 @@ export default function AdminWeeklyMenuPage() {
     return row ? row.items.join(', ') : '';
   }
 
+  function getVegOverride(day: string): boolean {
+    const key = `${menuType}-${day}-${mealType}`;
+    if (key in vegOverrides) return vegOverrides[key];
+    const row = rows.find((r) => r.menu_type === menuType && r.day_of_week === day && r.meal_type === mealType);
+    return row ? row.is_veg_override : false;
+  }
+
   function handleEdit(day: string, value: string) {
     const key = `${menuType}-${day}-${mealType}`;
     setEdits((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleVegOverride(day: string, value: boolean) {
+    const key = `${menuType}-${day}-${mealType}`;
+    setVegOverrides((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleSave(day: string) {
     const key = `${menuType}-${day}-${mealType}`;
     const value = edits[key] ?? getItems(day);
     const items = value.split(',').map((s) => s.trim()).filter(Boolean);
+    const isVegOverride = getVegOverride(day);
 
     setSaving(day);
     setError(null);
@@ -71,7 +86,7 @@ export default function AdminWeeklyMenuPage() {
       const res = await fetch('/api/admin/weekly-menu', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ menu_type: menuType, day_of_week: day, meal_type: mealType, items }),
+        body: JSON.stringify({ menu_type: menuType, day_of_week: day, meal_type: mealType, items, is_veg_override: isVegOverride }),
       });
       const data = await res.json();
       if (data.success) {
@@ -94,12 +109,14 @@ export default function AdminWeeklyMenuPage() {
     for (const day of DAYS) {
       const key = `${menuType}-${day}-${mealType}`;
       const value = edits[key];
-      if (value !== undefined) {
-        const items = value.split(',').map((s) => s.trim()).filter(Boolean);
+      const isVegOverride = vegOverrides[key] ?? getVegOverride(day);
+      if (value !== undefined || key in vegOverrides) {
+        const currentItems = value ?? getItems(day);
+        const items = currentItems.split(',').map((s) => s.trim()).filter(Boolean);
         await fetch('/api/admin/weekly-menu', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ menu_type: menuType, day_of_week: day, meal_type: mealType, items }),
+          body: JSON.stringify({ menu_type: menuType, day_of_week: day, meal_type: mealType, items, is_veg_override: isVegOverride }),
         });
       }
     }
@@ -260,6 +277,19 @@ export default function AdminWeeklyMenuPage() {
                     {mealType} • {menuType === 'veg' ? 'Vegetarian' : (menuType === 'premium_non_veg' ? 'Premium Non-Veg' : 'Non-Vegetarian')}
                   </div>
                 </div>
+
+                {menuType !== 'veg' && (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+                     <label style={{ fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                       <input type="radio" checked={!getVegOverride(day)} onChange={() => handleVegOverride(day, false)} />
+                       🍗 Non-Veg Meal
+                     </label>
+                     <label style={{ fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                       <input type="radio" checked={getVegOverride(day)} onChange={() => handleVegOverride(day, true)} />
+                       🌿 Veg Meal
+                     </label>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input

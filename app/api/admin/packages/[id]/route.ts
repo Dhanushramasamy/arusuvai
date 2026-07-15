@@ -38,7 +38,7 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const { name, days, meal_type, diet_type, price } = await req.json();
+    const { name, days, meal_type, diet_type, price, is_public = false, features = [], whatsapp_number = '', sort_order = 0 } = await req.json();
 
     if (!name || !days || !meal_type || !diet_type || price === undefined) {
       return NextResponse.json<ApiResponse>({ success: false, error: 'All fields are required' }, { status: 400 });
@@ -46,9 +46,9 @@ export async function PATCH(
 
     const result = await pool.query(
       `UPDATE subscription_packages
-       SET name = $1, days = $2, meal_type = $3, diet_type = $4, price = $5
+       SET name = $1, days = $2, meal_type = $3, diet_type = $4, price = $5, is_public = $7, features = $8, whatsapp_number = $9, sort_order = $10
        WHERE id = $6`,
-      [name, parseInt(days), meal_type, diet_type, parseFloat(price), id]
+      [name, parseInt(days), meal_type, diet_type, parseFloat(price), id, is_public, JSON.stringify(features), whatsapp_number, sort_order]
     );
 
     if (result.rowCount === 0) {

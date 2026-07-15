@@ -8,6 +8,7 @@ interface MenuRow {
   day_of_week: string;
   meal_type: string;
   items: string[];
+  is_veg_override: boolean;
 }
 
 interface MenuTabsProps {
@@ -32,8 +33,10 @@ export default function MenuTabs({ menuRows, dateRange }: MenuTabsProps) {
   // Filter rows for active package
   const activeRows = menuRows.filter(r => r.menu_type === activePkg.menuType && r.meal_type === activePkg.mealType);
   const byDay: Record<string, string[]> = {};
+  const byDayVegOverride: Record<string, boolean> = {};
   for (const row of activeRows) {
     byDay[row.day_of_week] = row.items;
+    byDayVegOverride[row.day_of_week] = row.is_veg_override;
   }
   const fallback = ['Menu not set yet'];
 
@@ -92,6 +95,7 @@ export default function MenuTabs({ menuRows, dateRange }: MenuTabsProps) {
             items={byDay[day]?.length ? byDay[day] : fallback} 
             menuType={activePkg.menuType as any} 
             mealType={activePkg.mealType as any} 
+            isVegOverride={byDayVegOverride[day] || false}
           />
         ))}
       </div>

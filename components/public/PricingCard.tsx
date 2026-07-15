@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface SubscriptionPlan {
-  id: number;
+  id: string;
   plan_name: string;
   plan_type: string;
   price: number;

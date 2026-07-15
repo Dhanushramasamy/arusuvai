@@ -7,6 +7,7 @@ interface MenuDayCardProps {
   items: string[];
   menuType: 'veg' | 'non_veg' | 'premium_non_veg';
   mealType?: 'Lunch' | 'Dinner';
+  isVegOverride?: boolean;
 }
 
 const DAY_THEMES: Record<string, { bg: string; border: string; accent: string; shadow: string }> = {
@@ -19,10 +20,10 @@ const DAY_THEMES: Record<string, { bg: string; border: string; accent: string; s
   Sunday:    { bg: 'linear-gradient(135deg, #FCF8F8 0%, #FFFFFF 100%)', border: '#F2DEDE', accent: '#B91C1C', shadow: 'rgba(185,28,28,0.12)' },
 };
 
-export default function MenuDayCard({ day, items, menuType, mealType }: MenuDayCardProps) {
+export default function MenuDayCard({ day, items, menuType, mealType, isVegOverride = false }: MenuDayCardProps) {
   const [hovered, setHovered] = useState(false);
   const theme = DAY_THEMES[day] || DAY_THEMES.Monday;
-  const isVeg = menuType === 'veg' || ((menuType === 'non_veg' || menuType === 'premium_non_veg') && (day === 'Tuesday' || day === 'Friday'));
+  const isVeg = menuType === 'veg' || isVegOverride;
 
   return (
     <div 
